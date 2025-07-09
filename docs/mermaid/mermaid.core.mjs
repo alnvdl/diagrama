@@ -23,7 +23,7 @@ import {
 } from "./chunks/mermaid.core/chunk-55PJQP7W.mjs";
 import {
   package_default
-} from "./chunks/mermaid.core/chunk-BVM4YFAL.mjs";
+} from "./chunks/mermaid.core/chunk-Q3YL2KNO.mjs";
 import {
   selectSvgElement
 } from "./chunks/mermaid.core/chunk-P3VETL53.mjs";
@@ -172,7 +172,7 @@ var detector7 = /* @__PURE__ */ __name((txt) => {
   return /^\s*info/.test(txt);
 }, "detector");
 var loader7 = /* @__PURE__ */ __name(async () => {
-  const { diagram: diagram2 } = await import("./chunks/mermaid.core/infoDiagram-RLU2ROGC.mjs");
+  const { diagram: diagram2 } = await import("./chunks/mermaid.core/infoDiagram-XT3IWWJI.mjs");
   return { id: id7, diagram: diagram2 };
 }, "loader");
 var info = {
