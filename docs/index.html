@@ -263,9 +263,9 @@
 
 flowchart TB
     step1[Click <code>Edit</code><br/>to enter edit mode]
-    step2[Learn about the<br/>
-          <a href="https://mermaid.js.org/intro/" target="_blank">
-          Mermaid language</a>]
+    step2[Learn about the
+        <a href="https://mermaid.js.org/intro/"
+        target="_blank">Mermaid language</a>]
     step3[Modify the diagram code]
     step4[Press <code>Ctrl+Enter</code> to update the diagram]
     step5[Click <code>View</code><br/>to enter view mode]
@@ -285,12 +285,12 @@ flowchart TB
 %% - Define a custom scale when exporting the diagram as a PNG.
 %% - Print the diagram using your browser's print functionality.
 %% - Use features available in VSCode, like find-and-replace (Ctrl+F),
-%%   multiple cursors (hold Ctrl), selecting occurences of the word under the
-%%   cursor (F2), delete line (Ctrl+D) and go to matching bracket (Ctrl+M).
-%%   You can open the command pallette to see all available commands (Ctrl+P).
+%%   multiple cursors (hold Ctrl), select occurences of the word under the
+%%   cursor (F2), delete lines (Ctrl+D) and go to matching brackets (Ctrl+M).
+%%   Open the command pallette to see all available commands (Ctrl+P).
 
-%% Diagrama is built on top of the wonderful Monaco Editor and Mermaid projects.
-%% All icons are from the Boostrap Icons project.`;
+%% Diagrama is built on top of the wonderful Monaco Editor and Mermaid
+%% projects. All icons are from the Boostrap Icons project.`;
         const defaultData = {
             content: defaultContent.trim(),
             name: 'Welcome to Diagrama',
@@ -591,6 +591,9 @@ flowchart TB
                     ['[', ']'],
                     ['(', ')'],
                 ],
+                folding: {
+                    offSide: true
+                }
             });
         };
 
