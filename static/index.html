@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diagrama</title>
+
+    <link rel="icon" href="./icon16.png" sizes="16x16" type="image/png">
+    <link rel="icon" href="./icon32.png" sizes="32x32" type="image/png">
+    <link rel="icon" href="./icon180.png" sizes="180x180" type="image/png">
+    <link rel="apple-touch-icon" href="./icon180.png" sizes="180x180" type="image/png">
+    <link rel="icon" href="./icon.svg" sizes="any" type="image/svg+xml">
+
+    <style>
+        body {
+            margin: 0;
+        }
+
+        #loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: #fff;
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            transition: opacity 0.3s;
+        }
+
+        .loading-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .spinner {
+            width: 48px;
+            height: 48px;
+            border: 6px solid #eee;
+            border-top: 6px solid #222;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 16px;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .loading-label {
+            font-size: 1.3rem;
+            color: #222;
+            font-family: sans-serif;
+        }
+
+        .app-grid {
+            display: grid;
+            grid-template-columns: 40vw 1fr;
+            grid-template-rows: 100vh;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        .error {
+            color: red;
+            font-family: monospace;
+            white-space: pre-wrap;
+            overflow-x: auto;
+            margin: 16px 16px;
+        }
+
+        #editor {
+            box-shadow: 4px 0 8px 0 rgba(0, 0, 0, 0.5);
+            z-index: 2;
+            background: #222;
+            width: 100%;
+            min-width: 0;
+            height: 100vh;
+            border: none;
+            padding: 0;
+            opacity: 1;
+            margin-right: 0;
+            position: relative;
+            display: block;
+            grid-row: 1 / 2;
+            grid-column: 1 / 2;
+        }
+
+        #editor.hidden {
+            opacity: 0;
+            width: 0 !important;
+            min-width: 0 !important;
+            margin-right: -4px;
+            pointer-events: none;
+            display: block;
+        }
+
+        #diagram {
+            display: grid;
+            grid-template-rows: auto 1fr;
+            width: 100%;
+            height: 100vh;
+            border: none;
+            padding: 0;
+            position: relative;
+            grid-row: 1 / 2;
+            grid-column: 2 / 3;
+        }
+
+        #diagram.full-width {
+            grid-column: 1 / 3;
+            width: 100vw !important;
+        }
+
+        #diagram-header {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem 1.5rem 0.5rem 1.5rem;
+            gap: 1rem;
+            flex: 0 0 auto;
+            min-height: 0;
+            border-bottom: 1px solid #ddd;
+        }
+
+        #diagram-content {
+            width: 100%;
+            height: 100%;
+            min-height: 0;
+            overflow: visible;
+            position: relative;
+            grid-row: 2 / 3;
+        }
+
+        #diagram-name {
+            font-size: 1.5rem;
+            border-radius: 0.3em;
+            border: 1px solid #ccc;
+            min-width: 0;
+            flex: 1 1 auto;
+            max-width: unset;
+            background: #fff;
+            color: #222;
+            border: none;
+        }
+
+        #diagram-name.no-caret {
+            caret-color: transparent;
+        }
+
+        #diagram-name:focus {
+            outline: none;
+        }
+
+        .button {
+            border: none;
+            flex: 0 0 auto;
+            font-size: 1rem;
+            padding: 0.5rem;
+            background: none;
+            border: 1px solid #222;
+            line-height: 1;
+            width: 85px;
+            max-width: 85px;
+        }
+
+        .button:active {
+            background: #ccc;
+            color: #222;
+        }
+
+        .button * {
+            vertical-align: text-bottom;
+        }
+
+        .button-icon {
+            margin-right: 0.5rem;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="loading-overlay">
+        <div class="loading-content">
+            <div class="spinner"></div>
+            <div class="loading-label">Loading...</div>
+        </div>
+    </div>
+
+    <div class="app-grid">
+        <div id="editor" class="hidden"></div>
+        <div id="diagram" class="full-width">
+            <div id="diagram-header">
+                <input id="diagram-name" type="text" placeholder="Untitled diagram" />
+                <button class="button" id="edit-mode">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                        class="bi bi-pencil button-icon" viewBox="0 0 16 16">
+                        <path
+                            d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325" />
+                    </svg>
+                    <span>Edit</span>
+                </button>
+                <button class="button" id="view-mode">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                        class="bi bi-eye button-icon" viewBox="0 0 16 16">
+                        <path
+                            d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8M1.173 8a13 13 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5s3.879 1.168 5.168 2.457A13 13 0 0 1 14.828 8q-.086.13-.195.288c-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5s-3.879-1.168-5.168-2.457A13 13 0 0 1 1.172 8z" />
+                        <path
+                            d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5M4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0" />
+                    </svg>
+                    <span>View</span>
+                </button>
+                <button class="button" id="download-svg">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                        class="bi bi-download button-icon" viewBox="0 0 16 16">
+                        <path
+                            d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5" />
+                        <path
+                            d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708z" />
+                    </svg>
+                    <span>SVG</span>
+                </button>
+                <button class="button" id="download-png">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                        class="bi bi-download button-icon" viewBox="0 0 16 16">
+                        <path
+                            d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5" />
+                        <path
+                            d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708z" />
+                    </svg>
+                    <span>PNG</span>
+                </button>
+            </div>
+            <div id="diagram-content"></div>
+        </div>
+    </div>
+    <script src="monaco-editor/min/vs/loader.js"></script>
+    <script type="module">
+        import mermaid from './mermaid/mermaid.esm.mjs';
+        import elkLayouts from './mermaid-elk/mermaid-layout-elk.esm.min.mjs';
+        require.config({paths: {vs: 'monaco-editor/min/vs'}});
+
+        const defaultContent = `flowchart TB
+    step1[Click <code>Edit</code><br/>to enter edit mode]
+    step2[Learn about the<br/><a href="https://mermaid.js.org/intro/" target="_blank">Mermaid language</a>]
+    step3[Modify the diagram code]
+    step4[Press <code>Ctrl+Enter</code> to update the diagram]
+    step5[Click <code>View</code><br/>to enter view mode]
+    step6[Share your diagram by copying the URL]
+    step7[Download the diagram as SVG or PNG]
+
+    step1 --> step2
+    step2 --> step3
+    step3 --> step4
+    step4 --> step5
+    step5 --> step6
+    step5 --> step7
+
+%% You can also:
+%% - Name your diagram when in edit mode.
+%% - Pan and zoom the diagram with the mouse.
+%% - Define a custom scale when exporting the diagram as a PNG.
+%% - Use features available in VSCode, like multiple cursors (hold Ctrl),
+%%   renaming symbols (Ctrl+F2) and find-and-replace (Ctrl+F). You can open the
+%%   command pallette to see all available commands (Ctrl+P).
+
+%% Diagrama is built on top of the wonderful Monaco Editor and Mermaid projects.
+%% All icons are from the Boostrap Icons project.
+`;
+        const defaultData = {
+            content: defaultContent.trim(),
+            name: '',
+            pngScale: 1,
+            mode: 'view',
+        };
+        // Current diagram data (always replaced immutably).
+        let data = defaultData;
+
+        function updateData(patch) {
+            let oldData = data;
+            data = Object.assign({}, data, patch);
+
+            if (oldData.name !== data.name) {
+                setName(data.name);
+            }
+
+            // If the content has changed, re-render the diagram and update the
+            // editor.
+            if (oldData.content != data.content) {
+                renderDiagram(data.content);
+
+                if (monacoEditor && monacoEditor.getValue() !== data.content) {
+                    const pos = monacoEditor.getPosition();
+                    monacoEditor.setValue(data.content);
+                    if (pos) monacoEditor.setPosition(pos);
+                }
+            }
+
+            // UI/browser side-effects.
+            setMode(data.mode);
+            encodeDataToHash(data);
+        }
+
+        function encodeDataToHash(data) {
+            try {
+                const json = JSON.stringify(data);
+                const b64 = btoa(unescape(encodeURIComponent(json)));
+                window.location.hash = b64;
+            } catch (e) {
+                // Ignore encoding errors.
+            }
+        }
+
+        function decodeDataFromHash() {
+            try {
+                const hash = window.location.hash.replace(/^#/, '');
+                if (!hash) return null;
+                const json = decodeURIComponent(escape(atob(hash)));
+                return JSON.parse(json);
+            } catch (e) {
+                return null;
+            }
+        }
+
+        function loadDataFromHashOrDefault() {
+            let proposedData;
+            const hashData = decodeDataFromHash();
+            if (hashData && typeof hashData === 'object') {
+                proposedData = Object.assign({}, defaultData, hashData);
+            } else {
+                proposedData = defaultData;
+            }
+            updateData(proposedData);
+        }
+
+        function setMode(mode) {
+            const editor = document.getElementById('editor');
+            const diagram = document.getElementById('diagram');
+            const diagramNameElem = document.getElementById('diagram-name');
+            if (mode === 'edit') {
+                editor.classList.remove('hidden');
+                diagram.classList.remove('full-width');
+                if (diagramNameElem) {
+                    diagramNameElem.readOnly = false;
+                    diagramNameElem.classList.remove('no-caret');
+                }
+                setTimeout(function() {
+                    if (monacoEditor) {
+                        monacoEditor.layout();
+                    }
+                }, 100);
+            } else if (mode === 'view') {
+                editor.classList.add('hidden');
+                diagram.classList.add('full-width');
+                if (diagramNameElem) {
+                    diagramNameElem.readOnly = true;
+                    diagramNameElem.classList.add('no-caret');
+                }
+                setTimeout(function() {
+                    if (monacoEditor) {
+                        monacoEditor.layout();
+                    }
+                }, 100);
+            }
+
+            // Hide the view/edit buttons based on the mode.
+            const editButton = document.getElementById('edit-mode');
+            const viewButton = document.getElementById('view-mode');
+            if (editButton && viewButton) {
+                if (mode === 'edit') {
+                    editButton.style.display = 'none';
+                    viewButton.style.display = 'inline-block';
+                } else {
+                    editButton.style.display = 'inline-block';
+                    viewButton.style.display = 'none';
+                }
+            }
+        }
+
+        function setName(name) {
+            const nameInput = document.getElementById('diagram-name');
+            if (nameInput) {
+                nameInput.value = name;
+            }
+            // Update the document title based on the diagram name.
+            if (name && name.trim() !== '') {
+                document.title = name.trim() + ' - Diagrama';
+            } else {
+                document.title = 'Diagrama';
+            }
+        }
+
+        // Initialize mermaid.
+        mermaid.initialize({
+            theme: 'neutral',
+        });
+        mermaid.registerLayoutLoaders(elkLayouts);
+        window.mermaid = mermaid; // Expose for other scripts.
+
+        // Initialize Monaco.
+        let monacoEditor;
+        require(['vs/editor/editor.main'], function() {
+            monacoEditor = monaco.editor.create(document.getElementById('editor'), {
+                value: data.content,
+                language: 'plain',
+                minimap: {enabled: false},
+                theme: "vs-dark",
+                overviewRulerLanes: 0,
+                multiCursorModifier: "ctrlCmd",
+                scrollBeyondLastLine: false,
+            });
+            // Set initial content in model.
+            updateData({content: monacoEditor.getValue()});
+
+            // Add keybinding for Ctrl+Shift+K to add selection to next find match.
+            monaco.editor.addKeybindingRule({
+                keybinding: monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyK,
+                command: 'editor.action.addSelectionToNextFindMatch',
+                when: null,
+            });
+            // Add keybinding for Ctrl+P to open the command palette, overriding browser print.
+            monaco.editor.addKeybindingRule({
+                keybinding: monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyP,
+                command: 'editor.action.quickCommand',
+                when: null,
+            });
+
+            // Render on Ctrl+Enter: only update model, let hashchange trigger render.
+            monacoEditor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, function() {
+                updateData({content: monacoEditor.getValue()});
+            });
+
+            // Render initial diagram.
+            renderDiagram(data.content);
+
+            // Handle window resize.
+            window.addEventListener('resize', function() {
+                monacoEditor.layout();
+            });
+        });
+
+        // Handle diagram name changes, but do not update diagram on input.
+        document.getElementById('diagram-name').addEventListener('input', function(e) {
+            updateData({name: e.target.value});
+        });
+
+        // Toggle editor visibility with Ctrl+E.
+        document.addEventListener('keydown', function(e) {
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'e') {
+                e.preventDefault();
+                updateData({mode: data.mode === 'view' ? 'edit' : 'view'});
+            }
+        });
+
+        // Swap between edit and view modes.
+        document.getElementById('edit-mode').addEventListener('click', function() {
+            updateData({mode: 'edit'});
+        });
+        document.getElementById('view-mode').addEventListener('click', function() {
+            updateData({mode: 'view'});
+        });
+
+        // On hash change, reload model and update UI.
+        window.addEventListener('hashchange', function() {
+            loadDataFromHashOrDefault();
+        });
+
+        // Download button: PNG.
+        document.getElementById('download-png').addEventListener('click', function() {
+            const svgElem = document.querySelector('#diagram-svg');
+            if (!svgElem) {
+                alert('No diagram to export.');
+                return;
+            }
+            let name = document.getElementById('diagram-name').value.trim() || 'diagram';
+            if (!name.toLowerCase().endsWith('.png')) name += '.png';
+            pngDownload(svgElem, name);
+        });
+
+        // Download button: SVG.
+        document.getElementById('download-svg').addEventListener('click', function() {
+            const svgElem = document.querySelector('#diagram-svg');
+            if (!svgElem) {
+                alert('No diagram to export.');
+                return;
+            }
+            let name = document.getElementById('diagram-name').value.trim() || 'diagram';
+            if (!name.toLowerCase().endsWith('.svg')) name += '.svg';
+            svgDownload(svgElem, name);
+        });
+
+        // On page load, initialize model from hash if present.
+        loadDataFromHashOrDefault();
+
+        function renderDiagram(code) {
+            let element = document.querySelector('#diagram-content');
+            element.innerHTML = '';
+            // Create a hidden container to render SVG off-screen.
+            let hiddenDiv = document.createElement('div');
+            hiddenDiv.style.display = 'none';
+            document.body.appendChild(hiddenDiv);
+            window.mermaid.render('diagram-svg', code).then(({svg}) => {
+                hiddenDiv.innerHTML = svg;
+                setTimeout(function() {
+                    const svgElem = hiddenDiv.querySelector('#diagram-svg');
+                    if (svgElem) {
+                        // Make SVG fill its parent without scrollbars.
+                        svgElem.style.width = '100%';
+                        svgElem.style.height = '100%';
+                        svgElem.style.display = 'block';
+                        svgElem.style.maxWidth = '100%';
+                        svgElem.style.maxHeight = '100%';
+                        svgElem.style.overflow = 'hidden';
+                        enablePanZoom(svgElem);
+                        // Move the SVG to the visible container.
+                        element.innerHTML = '';
+                        element.appendChild(svgElem);
+                    }
+                    // Clean up the hidden container.
+                    document.body.removeChild(hiddenDiv);
+                }, 0);
+            }).catch(e => {
+                element.innerHTML = '<pre class="error">' + e + '</pre>';
+                if (document.body.contains(hiddenDiv)) {
+                    document.body.removeChild(hiddenDiv);
+                }
+            });
+        }
+
+        function enablePanZoom(svg) {
+            if (!svg) return;
+            let isPanning = false;
+            let start = {x: 0, y: 0};
+            let viewBox = svg.viewBox.baseVal;
+            let last = {x: viewBox.x, y: viewBox.y, w: viewBox.width, h: viewBox.height};
+            svg.style.cursor = 'grab';
+
+            function onMouseMove(e) {
+                if (!isPanning) return;
+                const rect = svg.getBoundingClientRect();
+                // Calculate the actual rendered SVG area, accounting for
+                // preserveAspectRatio.
+                let vbAspect = viewBox.width / viewBox.height;
+                let rectAspect = rect.width / rect.height;
+                let renderWidth = rect.width;
+                let renderHeight = rect.height;
+                let offsetX = 0;
+                let offsetY = 0;
+                if (rectAspect > vbAspect) {
+                    renderWidth = rect.height * vbAspect;
+                    offsetX = (rect.width - renderWidth) / 2;
+                } else if (rectAspect < vbAspect) {
+                    renderHeight = rect.width / vbAspect;
+                    offsetY = (rect.height - renderHeight) / 2;
+                }
+                let dx = (e.clientX - start.x) * viewBox.width / renderWidth;
+                let dy = (e.clientY - start.y) * viewBox.height / renderHeight;
+                viewBox.x = last.x - dx;
+                viewBox.y = last.y - dy;
+            }
+            function onMouseUp() {
+                isPanning = false;
+                svg.style.cursor = 'grab';
+                svg.style.userSelect = '';
+                window.removeEventListener('mousemove', onMouseMove);
+                window.removeEventListener('mouseup', onMouseUp);
+            }
+            svg.addEventListener('mousedown', function(e) {
+                e.preventDefault(); // Prevent text selection and drag.
+                isPanning = true;
+                start.x = e.clientX;
+                start.y = e.clientY;
+                last.x = viewBox.x;
+                last.y = viewBox.y;
+                svg.style.cursor = 'grabbing';
+                svg.style.userSelect = 'none';
+                window.addEventListener('mousemove', onMouseMove);
+                window.addEventListener('mouseup', onMouseUp);
+            });
+            svg.addEventListener('mouseleave', function() {
+                isPanning = false;
+                svg.style.cursor = 'grab';
+                svg.style.userSelect = '';
+                window.removeEventListener('mousemove', onMouseMove);
+                window.removeEventListener('mouseup', onMouseUp);
+            });
+            svg.addEventListener('wheel', function(e) {
+                e.preventDefault();
+                const rect = svg.getBoundingClientRect();
+                let scale = e.deltaY < 0 ? 0.9 : 1.1;
+                let mx = e.offsetX * viewBox.width / rect.width + viewBox.x;
+                let my = e.offsetY * viewBox.height / rect.height + viewBox.y;
+                let newW = viewBox.width * scale;
+                let newH = viewBox.height * scale;
+                viewBox.x = mx - (mx - viewBox.x) * scale;
+                viewBox.y = my - (my - viewBox.y) * scale;
+                viewBox.width = newW;
+                viewBox.height = newH;
+            }, {passive: false});
+        }
+
+        function pngDownload(svgElem, fileName) {
+            let scale = window.prompt('Enter the scale of the exported diagram (a number between 1 and 100):', data.pngScale);
+            if (scale === null) return; // If prompt is canceled, do not continue with the download.
+            scale = parseFloat(scale);
+            if (!scale || scale < 0 || scale > 100) scale = 1;
+            updateData({pngScale: scale});
+
+            const clone = svgElem.cloneNode(true);
+            clone.removeAttribute('width');
+            clone.removeAttribute('height');
+            let bbox = svgElem.getBBox();
+            clone.setAttribute('viewBox', `${bbox.x} ${bbox.y} ${bbox.width} ${bbox.height}`);
+            clone.setAttribute('width', bbox.width);
+            clone.setAttribute('height', bbox.height);
+            const svgData = new XMLSerializer().serializeToString(clone);
+            const img = new window.Image();
+            const svgBlob = new Blob([svgData], {type: 'image/svg+xml;charset=utf-8'});
+            const url = URL.createObjectURL(svgBlob);
+            img.onload = function() {
+                const canvas = document.createElement('canvas');
+                canvas.width = bbox.width * scale;
+                canvas.height = bbox.height * scale;
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.setTransform(scale, 0, 0, scale, 0, 0); // Scale context by pngScale.
+                ctx.drawImage(img, 0, 0);
+                URL.revokeObjectURL(url);
+                canvas.toBlob(function(blob) {
+                    const a = document.createElement('a');
+                    a.href = URL.createObjectURL(blob);
+                    a.download = fileName;
+                    document.body.appendChild(a);
+                    a.click();
+                    setTimeout(() => {
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(a.href);
+                    }, 100);
+                }, 'image/png');
+            };
+            img.onerror = function() {
+                alert('Failed to render PNG.');
+                URL.revokeObjectURL(url);
+            };
+            img.src = url;
+        }
+
+        function svgDownload(svgElem, fileName) {
+            // Clone SVG to avoid touching the DOM.
+            const clone = svgElem.cloneNode(true);
+            const svgData = new XMLSerializer().serializeToString(clone);
+            const blob = new Blob([svgData], {type: 'image/svg+xml;charset=utf-8'});
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(() => {
+                document.body.removeChild(a);
+                URL.revokeObjectURL(a.href);
+            }, 100);
+        }
+    </script>
+    <script>
+        window.addEventListener('load', function() {
+            var overlay = document.getElementById('loading-overlay');
+            if (overlay) {
+                overlay.style.opacity = '0';
+                setTimeout(function() {
+                    overlay.style.display = 'none';
+                }, 350);
+            }
+        });
+    </script>
+</body>
+
+</html>
