@@ -531,8 +531,8 @@ flowchart TB
         loadDataFromHashOrDefault();
 
         function renderDiagram(code) {
+            let element = document.querySelector('#diagram-content');
             window.mermaid.render('diagram-svg', code).then(({svg}) => {
-                let element = document.querySelector('#diagram-content');
                 element.innerHTML = svg;
                 const svgElement = element.querySelector('#diagram-svg');
                 if (svgElement) {
