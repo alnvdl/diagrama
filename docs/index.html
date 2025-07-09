@@ -61,7 +61,6 @@
         .loading-label {
             font-size: 1.3rem;
             color: #222;
-            font-family: sans-serif;
         }
 
         .app-grid {
@@ -186,6 +185,19 @@
         .button-icon {
             margin-right: 0.5rem;
         }
+
+        @media print {
+
+            .button,
+            #editor {
+                display: none !important;
+            }
+
+            #diagram {
+                grid-column: 1 / 3;
+                width: 100vw !important;
+            }
+        }
     </style>
 </head>
 
@@ -250,7 +262,10 @@
         import elkLayouts from './mermaid-elk/mermaid-layout-elk.esm.min.mjs';
         require.config({paths: {vs: 'monaco-editor/min/vs'}});
 
-        const defaultContent = `flowchart TB
+        const defaultContent = `%% Diagrama is a minimalistic web-based diagram editor.
+%% The diagram you are seeing is described by the code below:
+
+flowchart TB
     step1[Click <code>Edit</code><br/>to enter edit mode]
     step2[Learn about the<br/><a href="https://mermaid.js.org/intro/" target="_blank">Mermaid language</a>]
     step3[Modify the diagram code]
@@ -266,37 +281,38 @@
     step5 --> step6
     step5 --> step7
 
-%% You can also:
+%% In Diagrama, you can also:
 %% - Name your diagram when in edit mode.
 %% - Pan and zoom the diagram with the mouse.
 %% - Define a custom scale when exporting the diagram as a PNG.
-%% - Use features available in VSCode, like multiple cursors (hold Ctrl),
-%%   renaming symbols (Ctrl+F2) and find-and-replace (Ctrl+F). You can open the
-%%   command pallette to see all available commands (Ctrl+P).
+%% - Print the diagram using your browser's print functionality.
+%% - Use features available in VSCode, like find-and-replace (Ctrl+F),
+%%   multiple cursors (hold Ctrl), selecting occurences of the word under the
+%%   cursor (F2), delete line (Ctrl+D) and go to matching bracket (Ctrl+M).
+%%   You can open the command pallette to see all available commands (Ctrl+P).
 
 %% Diagrama is built on top of the wonderful Monaco Editor and Mermaid projects.
 %% All icons are from the Boostrap Icons project.
 `;
         const defaultData = {
             content: defaultContent.trim(),
-            name: '',
+            name: 'Welcome to Diagrama!',
             pngScale: 1,
             mode: 'view',
         };
-        // Current diagram data (always replaced immutably).
-        let data = defaultData;
+        let data = null;
 
         function updateData(patch) {
             let oldData = data;
             data = Object.assign({}, data, patch);
 
-            if (oldData.name !== data.name) {
+            if (!oldData || oldData.name !== data.name) {
                 setName(data.name);
             }
 
             // If the content has changed, re-render the diagram and update the
             // editor.
-            if (oldData.content != data.content) {
+            if (!oldData || oldData.content != data.content) {
                 renderDiagram(data.content);
 
                 if (monacoEditor && monacoEditor.getValue() !== data.content) {
@@ -419,29 +435,41 @@
                 multiCursorModifier: "ctrlCmd",
                 scrollBeyondLastLine: false,
             });
-            // Set initial content in model.
-            updateData({content: monacoEditor.getValue()});
 
-            // Add keybinding for Ctrl+Shift+K to add selection to next find match.
-            monaco.editor.addKeybindingRule({
+            monaco.editor.addKeybindingRules([{
+                keybinding: monaco.KeyCode.F2,
+                command: 'editor.action.selectHighlights',
+                when: null,
+            }, {
                 keybinding: monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyK,
                 command: 'editor.action.addSelectionToNextFindMatch',
                 when: null,
-            });
-            // Add keybinding for Ctrl+P to open the command palette, overriding browser print.
-            monaco.editor.addKeybindingRule({
+            }, {
                 keybinding: monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyP,
                 command: 'editor.action.quickCommand',
                 when: null,
-            });
+            }, {
+                keybinding: monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyD,
+                command: 'editor.action.deleteLines',
+                when: null,
+            }, {
+                keybinding: monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyM,
+                command: 'editor.action.jumpToBracket',
+                when: null,
+            }, {
+                keybinding: monaco.KeyMod.Shift | monaco.KeyMod.Alt | monaco.KeyCode.UpArrow,
+                command: 'editor.action.insertCursorAbove',
+                when: null,
+            }, {
+                keybinding: monaco.KeyMod.Shift | monaco.KeyMod.Alt | monaco.KeyCode.DownArrow,
+                command: 'editor.action.insertCursorBelow',
+                when: null,
+            }]);
 
-            // Render on Ctrl+Enter: only update model, let hashchange trigger render.
+            // Update data on Ctrl+Enter.
             monacoEditor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, function() {
                 updateData({content: monacoEditor.getValue()});
             });
-
-            // Render initial diagram.
-            renderDiagram(data.content);
 
             // Handle window resize.
             window.addEventListener('resize', function() {
@@ -503,37 +531,22 @@
         loadDataFromHashOrDefault();
 
         function renderDiagram(code) {
-            let element = document.querySelector('#diagram-content');
-            element.innerHTML = '';
-            // Create a hidden container to render SVG off-screen.
-            let hiddenDiv = document.createElement('div');
-            hiddenDiv.style.display = 'none';
-            document.body.appendChild(hiddenDiv);
             window.mermaid.render('diagram-svg', code).then(({svg}) => {
-                hiddenDiv.innerHTML = svg;
-                setTimeout(function() {
-                    const svgElem = hiddenDiv.querySelector('#diagram-svg');
-                    if (svgElem) {
-                        // Make SVG fill its parent without scrollbars.
-                        svgElem.style.width = '100%';
-                        svgElem.style.height = '100%';
-                        svgElem.style.display = 'block';
-                        svgElem.style.maxWidth = '100%';
-                        svgElem.style.maxHeight = '100%';
-                        svgElem.style.overflow = 'hidden';
-                        enablePanZoom(svgElem);
-                        // Move the SVG to the visible container.
-                        element.innerHTML = '';
-                        element.appendChild(svgElem);
-                    }
-                    // Clean up the hidden container.
-                    document.body.removeChild(hiddenDiv);
-                }, 0);
+                let element = document.querySelector('#diagram-content');
+                element.innerHTML = svg;
+                const svgElement = element.querySelector('#diagram-svg');
+                if (svgElement) {
+                    // Make SVG fill its parent without scrollbars.
+                    svgElement.style.width = '100%';
+                    svgElement.style.height = '100%';
+                    svgElement.style.display = 'block';
+                    svgElement.style.maxWidth = '100%';
+                    svgElement.style.maxHeight = '100%';
+                    svgElement.style.overflow = 'hidden';
+                    enablePanZoom(svgElement);
+                }
             }).catch(e => {
                 element.innerHTML = '<pre class="error">' + e + '</pre>';
-                if (document.body.contains(hiddenDiv)) {
-                    document.body.removeChild(hiddenDiv);
-                }
             });
         }
 
