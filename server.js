@@ -1,10 +1,9 @@
-// Simple static file server for the 'static' folder on port 8080.
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
 
 const PORT = 8080;
-const STATIC_DIR = path.join(__dirname, 'static');
+const STATIC_DIR = path.join(__dirname, 'docs');
 
 const mimeTypes = {
     '.html': 'text/html',
@@ -46,5 +45,5 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, () => {
-    console.log(`Static server running at http://localhost:${PORT}/`);
+    console.log(`Server running at http://localhost:${PORT}/`);
 });
