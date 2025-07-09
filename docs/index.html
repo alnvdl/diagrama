@@ -15,37 +15,28 @@
     <style>
         body {
             margin: 0;
+            font-family: sans-serif;
         }
 
         #loading-overlay {
+            align-items: center;
+            background: #fff;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            justify-content: center;
+            left: 0;
             position: fixed;
             top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background: #fff;
-            z-index: 9999;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-direction: column;
             transition: opacity 0.3s;
+            width: 100vw;
+            z-index: 9999;
         }
 
         .loading-content {
+            align-items: center;
             display: flex;
             flex-direction: column;
-            align-items: center;
-        }
-
-        .spinner {
-            width: 48px;
-            height: 48px;
-            border: 6px solid #eee;
-            border-top: 6px solid #222;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-bottom: 16px;
         }
 
         @keyframes spin {
@@ -58,63 +49,71 @@
             }
         }
 
+        .spinner {
+            width: 48px;
+            height: 48px;
+            border: 6px solid #eee;
+            border-top: 6px solid #222;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 16px;
+        }
+
         .loading-label {
-            font-size: 1.3rem;
             color: #222;
+            font-size: 1.3rem;
         }
 
         .app-grid {
             display: grid;
             grid-template-columns: 40vw 1fr;
             grid-template-rows: 100vh;
-            width: 100vw;
             height: 100vh;
+            width: 100vw;
         }
 
         .error {
             color: red;
             font-family: monospace;
-            white-space: pre-wrap;
             overflow-x: auto;
             padding: 0.5rem 1.5rem 0.5rem 1.5rem;
+            white-space: pre-wrap;
         }
 
         #editor {
-            box-shadow: 4px 0 8px 0 rgba(0, 0, 0, 0.5);
-            z-index: 2;
-            background: #222;
-            width: 100%;
-            min-width: 0;
-            height: 100vh;
             border: none;
-            padding: 0;
-            opacity: 1;
-            margin-right: 0;
-            position: relative;
+            box-shadow: 4px 0 4px 0 rgba(0, 0, 0, 0.25);
             display: block;
-            grid-row: 1 / 2;
             grid-column: 1 / 2;
+            grid-row: 1 / 2;
+            height: 100vh;
+            margin-right: 0;
+            min-width: 0;
+            padding: 0;
+            position: relative;
+            width: 100%;
+            z-index: 2;
         }
 
         #editor.hidden {
-            opacity: 0;
-            width: 0 !important;
-            min-width: 0 !important;
-            margin-right: -4px;
-            pointer-events: none;
             display: block;
+            margin-right: -4px;
+            min-width: 0 !important;
+            opacity: 0;
+            pointer-events: none;
+            width: 0 !important;
         }
 
         #diagram {
-            display: grid;
-            grid-template-rows: auto 1fr;
-            width: 100%;
-            height: 100vh;
             border: none;
+            display: grid;
+            grid-column: 2 / 3;
+            grid-row: 1 / 2;
+            grid-template-rows: auto 1fr;
+            height: 100vh;
             padding: 0;
             position: relative;
-            grid-row: 1 / 2;
-            grid-column: 2 / 3;
+            width: 100%;
         }
 
         #diagram.full-width {
@@ -123,34 +122,32 @@
         }
 
         #diagram-header {
-            display: flex;
             align-items: center;
-            padding: 0.5rem 1.5rem 0.5rem 1.5rem;
-            gap: 1rem;
+            border-bottom: 1px solid #eee;
+            display: flex;
             flex: 0 0 auto;
+            gap: 1rem;
             min-height: 0;
-            border-bottom: 1px solid #ddd;
+            padding: 0.5rem 1.5rem 0.5rem 1.5rem;
         }
 
         #diagram-content {
-            width: 100%;
-            height: 100%;
+            grid-row: 2 / 3;
             min-height: 0;
             overflow: visible;
             position: relative;
-            grid-row: 2 / 3;
+            padding: 0rem 1rem;
         }
 
         #diagram-name {
-            font-size: 1.5rem;
-            border-radius: 0.3em;
-            border: 1px solid #ccc;
-            min-width: 0;
-            flex: 1 1 auto;
-            max-width: unset;
-            background: #fff;
-            color: #222;
+            background: transparent;
             border: none;
+            color: #222;
+            flex: 1 1 auto;
+            font-size: 1.5rem;
+            max-width: unset;
+            min-width: 0;
+            padding: 0;
         }
 
         #diagram-name.no-caret {
@@ -162,19 +159,18 @@
         }
 
         .button {
-            border: none;
-            flex: 0 0 auto;
-            font-size: 1rem;
-            padding: 0.5rem;
             background: none;
             border: 1px solid #222;
+            flex: 0 0 auto;
+            font-size: 1rem;
             line-height: 1;
-            width: 85px;
             max-width: 85px;
+            padding: 0.5rem;
+            width: 85px;
         }
 
         .button:active {
-            background: #ccc;
+            background: #eee;
             color: #222;
         }
 
@@ -187,6 +183,7 @@
         }
 
         @media print {
+
             .button,
             #editor {
                 display: none !important;
@@ -425,14 +422,20 @@ flowchart TB
         // Initialize Monaco.
         let monacoEditor;
         require(['vs/editor/editor.main'], function() {
+            initLang(monaco);
+            initTheme(monaco);
+
             monacoEditor = monaco.editor.create(document.getElementById('editor'), {
-                value: data.content,
-                language: 'plain',
+                guides: {highlightActiveIndentation: false, indentation: false},
+                language: 'mermaid',
+                lineHeight: 22,
                 minimap: {enabled: false},
-                theme: "vs-dark",
-                overviewRulerLanes: 0,
                 multiCursorModifier: "ctrlCmd",
+                overviewRulerLanes: 0,
+                renderWhitespace: "none",
                 scrollBeyondLastLine: false,
+                theme: "diagrama-dark",
+                value: data.content,
             });
 
             monaco.editor.addKeybindingRules([{
@@ -538,14 +541,91 @@ flowchart TB
                     // Make SVG fill its parent without scrollbars.
                     svgElement.style.width = '100%';
                     svgElement.style.height = '100%';
-                    svgElement.style.display = 'block';
                     svgElement.style.maxWidth = '100%';
                     svgElement.style.maxHeight = '100%';
+                    svgElement.style.display = 'block';
                     svgElement.style.overflow = 'hidden';
                     enablePanZoom(svgElement);
                 }
             }).catch(e => {
                 element.innerHTML = '<pre class="error">' + e + '</pre>';
+            });
+        }
+
+        function initLang(monacoEditor) {
+            monacoEditor.languages.register({id: 'mermaid'});
+
+            monacoEditor.languages.setMonarchTokensProvider('mermaid', {
+                defaultToken: '',
+                tokenPostfix: '.mermaid',
+                tokenizer: {
+                    root: [
+                        // Front matter at the very start of the document.
+                        [/^---\s*$/, {token: 'front-matter', next: '@frontMatter'}],
+
+                        // Comments.
+                        [/^\s*%%.*$/, 'comment'],
+
+                        // Keywords with optional -beta or -v<number> suffix.
+                        [
+                            /\b(flowchart|sequenceDiagram|classDiagram|stateDiagram|erDiagram|journey|gantt|pie|quadrantChart|requirementDiagram|gitGraph|C4Context|mindmap|timeline|zenuml|sankey|xychart|block|packet|kanban|architecture|radar|treemap)(-beta|-v\d+)?\b/,
+                            'keyword'
+                        ],
+                    ],
+
+                    // Front matter state: everything is 'front-matter' until closing ---
+                    frontMatter: [
+                        [/^---\s*$/, {token: 'front-matter', next: '@pop'}],
+                        [/.*$/, 'front-matter'],
+                    ],
+                },
+            });
+
+            monacoEditor.languages.setLanguageConfiguration('mermaid', {
+                comments: {
+                    lineComment: '%%',
+                },
+                brackets: [
+                    ['{', '}'],
+                    ['[', ']'],
+                    ['(', ')'],
+                ],
+            });
+        };
+
+        function initTheme(monaco) {
+            monaco.editor.defineTheme("diagrama-dark", {
+                base: "vs-dark",
+                inherit: true,
+                // These colors are based on the Monokai Dimmed theme:
+                // https://github.com/microsoft/vscode/blob/e42d3b2c535d6a9ab9bd9c4d998f1d0fa96ceb98/extensions/theme-monokai-dimmed/themes/dimmed-monokai-color-theme.json
+                "colors": {
+                    "editor.background": "#1e1e1e",
+                    "editor.foreground": "#c5c8c6",
+                    "editor.selectionBackground": "#676b7180",
+                    "editor.selectionHighlightBackground": "#575b6180",
+                    "editor.lineHighlightBackground": "#303030",
+                    "editorLineNumber.activeForeground": "#949494",
+                    "editor.wordHighlightBackground": "#4747a180",
+                    "editor.wordHighlightStrongBackground": "#6767ce80",
+                    "editorCursor.foreground": "#c07020",
+                    "editorWhitespace.foreground": "#505037",
+                    "editorIndentGuide.background1": "#505037",
+                    "editorIndentGuide.activeBackground1": "#707057",
+                },
+                rules: [{
+                    "token": "comment.mermaid",
+                    "fontStyle": "",
+                    "foreground": "#9A9B99"
+                }, {
+                    "token": "keyword.mermaid",
+                    "fontStyle": "bold",
+                    "foreground": "#CE6700"
+                }, {
+                    "token": "front-matter.mermaid",
+                    "fontStyle": "italic",
+                    "foreground": "#6089B4"
+                }],
             });
         }
 
