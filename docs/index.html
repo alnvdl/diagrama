@@ -145,21 +145,21 @@
 
         #diagram-name {
             background: transparent;
-            border: none;
+            border: none !important;
             color: #222;
             flex: 1 1 auto;
             font-size: 1.5rem;
             max-width: unset;
             min-width: 0;
+            outline: none !important;
+            overflow: hidden;
             padding: 0;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
 
         #diagram-name.no-caret {
             caret-color: transparent;
-        }
-
-        #diagram-name:focus {
-            outline: none;
         }
 
         .button {
@@ -175,8 +175,11 @@
             gap: 0.5rem;
             justify-content: center;
             padding: 0.5rem;
-            transition: background-color 0.3s ease;
-            width: 6rem;
+            transition: background-color 0.3s;
+        }
+
+        .button.fixed-width {
+            width: 5rem;
         }
 
         .button.hidden {
@@ -190,6 +193,43 @@
         .button-icon {
             display: inline-block;
             vertical-align: middle;
+        }
+
+        .button-group {
+            border: 1px solid #ccc;
+            display: inline-flex;
+            overflow: hidden;
+        }
+
+        .button-group .button:not(:first-child) {
+            border-left: 1px solid #ccc;
+        }
+
+        .download-icon {
+            align-items: center;
+            background: #fff;
+            display: inline-flex;
+            padding: 0 0.5rem;
+        }
+
+        #share-overlay {
+            background: #222;
+            color: #fff;
+            font-size: 0.85rem;
+            font-weight: 500;
+            opacity: 0;
+            padding: 0.75rem 1.5rem;
+            pointer-events: none;
+            position: fixed;
+            right: 1.5rem;
+            top: 3.5rem;
+            transform: none;
+            transition: opacity 0.3s;
+            z-index: 9999;
+        }
+
+        #share-overlay.show {
+            opacity: 1;
         }
 
         /* Only show the full-width diagram on touch devices. */
@@ -215,8 +255,8 @@
 
         @media print {
 
-            .button,
-            #editor {
+            #editor,
+            .button {
                 display: none !important;
             }
 
@@ -236,45 +276,51 @@
         </div>
     </div>
 
+    <div id="share-overlay">Link copied to clipboard</div>
+
     <div class="app-grid">
         <div id="editor" class="hidden"></div>
         <div id="diagram" class="full-width">
             <div id="diagram-header">
                 <input id="diagram-name" type="text" placeholder="Untitled diagram" />
-                <button class="button" id="download-svg">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
-                        class="bi bi-download button-icon" viewBox="0 0 16 16">
-                        <path
-                            d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5" />
-                        <path
-                            d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708z" />
-                    </svg><span>SVG</span>
-                </button>
-                <button class="button" id="download-png">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
-                        class="bi bi-download button-icon" viewBox="0 0 16 16">
-                        <path
-                            d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5" />
-                        <path
-                            d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708z" />
-                    </svg><span>PNG</span>
-                </button>
-                <button class="button" id="edit-mode">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
-                        class="bi bi-pencil button-icon" viewBox="0 0 16 16">
-                        <path
-                            d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325" />
-                    </svg><span>Edit</span>
-                </button>
-                <button class="button" id="view-mode">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
-                        class="bi bi-eye button-icon" viewBox="0 0 16 16">
-                        <path
-                            d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8M1.173 8a13 13 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5s3.879 1.168 5.168 2.457A13 13 0 0 1 14.828 8q-.086.13-.195.288c-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5s-3.879-1.168-5.168-2.457A13 13 0 0 1 1.172 8z" />
-                        <path
-                            d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5M4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0" />
-                    </svg><span>View</span>
-                </button>
+                <div class="button-group">
+                    <div class="download-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                            class="bi bi-download button-icon" viewBox="0 0 16 16">
+                            <path
+                                d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5" />
+                            <path
+                                d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708z" />
+                        </svg>
+                    </div>
+                    <button class="button" id="download-svg"><span>SVG</span></button>
+                    <button class="button" id="download-png"><span>PNG</span></button>
+                </div>
+                <div class="button-group">
+                    <button class="button fixed-width" id="share">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                            class="bi bi-share" viewBox="0 0 16 16">
+                            <path
+                                d="M13.5 1a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3M11 2.5a2.5 2.5 0 1 1 .603 1.628l-6.718 3.12a2.5 2.5 0 0 1 0 1.504l6.718 3.12a2.5 2.5 0 1 1-.488.876l-6.718-3.12a2.5 2.5 0 1 1 0-3.256l6.718-3.12A2.5 2.5 0 0 1 11 2.5m-8.5 4a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3m11 5.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3" />
+                        </svg><span>Share</span>
+                    </button>
+                    <button class="button fixed-width" id="edit-mode">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                            class="bi bi-pencil button-icon" viewBox="0 0 16 16">
+                            <path
+                                d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325" />
+                        </svg><span>Edit</span>
+                    </button>
+                    <button class="button fixed-width" id="view-mode">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                            class="bi bi-eye button-icon" viewBox="0 0 16 16">
+                            <path
+                                d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8M1.173 8a13 13 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5s3.879 1.168 5.168 2.457A13 13 0 0 1 14.828 8q-.086.13-.195.288c-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5s-3.879-1.168-5.168-2.457A13 13 0 0 1 1.172 8z" />
+                            <path
+                                d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5M4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0" />
+                        </svg><span>View</span>
+                    </button>
+                </div>
             </div>
             <div id="diagram-content"></div>
         </div>
@@ -327,6 +373,7 @@ flowchart TB
             mode: 'view',
         };
         let data = null;
+        let shareOverlayTimeout;
 
         function updateData(patch) {
             let oldData = data;
@@ -538,6 +585,19 @@ flowchart TB
         // On hash change, reload model and update UI.
         window.addEventListener('hashchange', function() {
             loadDataFromHashOrDefault();
+        });
+
+        // Share button.
+        document.getElementById('share').addEventListener('click', function() {
+            navigator.clipboard.writeText(window.location.href);
+
+            const overlay = document.getElementById('share-overlay');
+            overlay.classList.add('show');
+
+            clearTimeout(shareOverlayTimeout);
+            shareOverlayTimeout = setTimeout(() => {
+                overlay.classList.remove('show');
+            }, 2000);
         });
 
         // Download button: PNG.
@@ -808,6 +868,7 @@ flowchart TB
             }, 100);
         }
     </script>
+
     <script>
         window.addEventListener('load', function() {
             var overlay = document.getElementById('loading-overlay');
