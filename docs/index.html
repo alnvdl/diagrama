@@ -193,7 +193,7 @@
         }
 
         /* Only show the full-width diagram on touch devices. */
-        @media only screen and (hover: none) and (pointer: coarse) {
+        @media only screen and (any-hover: none) and (pointer: coarse) {
             .button {
                 display: none !important;
             }
@@ -314,9 +314,9 @@ flowchart TB
 %% - Use features available in VSCode, like find-and-replace (Ctrl+F),
 %%   multiple cursors (hold Ctrl), select occurences of the word under the
 %%   cursor (F2), delete lines (Ctrl+D) and go to matching brackets (Ctrl+M).
-%%   Open the command pallette to see all available commands (Ctrl+P).
+%%   Open the command palette to see all available commands (Ctrl+P).
 
-%% Diagrama is entirely client-side: no data leaves your browser.
+%% Diagrama runs entirely client-side: no data leaves your browser.
 %% The code is available at: https://github.com/alnvdl/diagrama
 %% Diagrama is built on top of the wonderful Monaco Editor and Mermaid
 %% projects. All icons are from the Boostrap Icons project.`;
