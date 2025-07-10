@@ -383,7 +383,10 @@ flowchart TB
         let data = null;
         let shareOverlayTimeout;
 
-        function updateData(patch) {
+        // updateData patches the data object and updates the UI accordingly.
+        // It is an async function because it may need to trigger a re-render
+        // of the diagram.
+        async function updateData(patch) {
             let oldData = data;
             data = Object.assign({}, data, patch);
 
@@ -394,7 +397,7 @@ flowchart TB
             // If the content has changed, re-render the diagram and update the
             // editor.
             if (!oldData || oldData.content != data.content) {
-                renderDiagram(data.content);
+                await renderDiagram(data.content);
 
                 if (monacoEditor && monacoEditor.getValue() !== data.content) {
                     const pos = monacoEditor.getPosition();
@@ -578,7 +581,7 @@ flowchart TB
         document.addEventListener('keydown', function(e) {
             if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'e') {
                 e.preventDefault();
-                updateData({mode: data.mode === 'view' ? 'edit' : 'view'});
+                updateData({mode: data.mode === 'view' ? 'edit' : 'view', content: monacoEditor.getValue()});
             }
         });
 
@@ -587,7 +590,7 @@ flowchart TB
             updateData({mode: 'edit'});
         });
         document.getElementById('view-mode').addEventListener('click', function() {
-            updateData({mode: 'view'});
+            updateData({mode: 'view', content: monacoEditor.getValue()});
         });
 
         // On hash change, reload model and update UI.
@@ -596,7 +599,8 @@ flowchart TB
         });
 
         // Share button.
-        document.getElementById('share').addEventListener('click', function() {
+        document.getElementById('share').addEventListener('click', async function() {
+            await updateData({content: monacoEditor.getValue()});
             navigator.clipboard.writeText(window.location.href);
 
             const overlay = document.getElementById('share-overlay');
@@ -608,36 +612,29 @@ flowchart TB
             }, 2000);
         });
 
-        // Download button: PNG.
-        document.getElementById('download-png').addEventListener('click', function() {
-            const svgElem = document.querySelector('#diagram-svg');
-            if (!svgElem) {
-                alert('No diagram to export.');
-                return;
-            }
-            let name = document.getElementById('diagram-name').value.trim() || 'Diagrama';
-            if (!name.toLowerCase().endsWith('.png')) name += '.png';
-            pngDownload(svgElem, name);
-        });
-
-        // Download button: SVG.
-        document.getElementById('download-svg').addEventListener('click', function() {
-            const svgElem = document.querySelector('#diagram-svg');
-            if (!svgElem) {
-                alert('No diagram to export.');
-                return;
-            }
-            let name = document.getElementById('diagram-name').value.trim() || 'Diagrama';
-            if (!name.toLowerCase().endsWith('.svg')) name += '.svg';
-            svgDownload(svgElem, name);
+        // Download buttons.
+        ['download-png', 'download-svg'].forEach(type => {
+            document.getElementById(type).addEventListener('click', async function() {
+                await updateData({content: monacoEditor.getValue()});
+                const svgElem = document.querySelector('#diagram-svg');
+                if (!svgElem) {
+                    alert('No diagram to export.');
+                    return;
+                }
+                let name = document.getElementById('diagram-name').value.trim() || 'Diagrama';
+                const ext = type === 'download-png' ? '.png' : '.svg';
+                if (!name.toLowerCase().endsWith(ext)) name += ext;
+                (type === 'download-png' ? pngDownload : svgDownload)(svgElem, name);
+            });
         });
 
         // On page load, initialize model from hash if present.
         loadDataFromHashOrDefault();
 
-        function renderDiagram(code) {
+        async function renderDiagram(code) {
             let element = document.querySelector('#diagram-content');
-            window.mermaid.render('diagram-svg', code).then(({svg}) => {
+            try {
+                const {svg} = await window.mermaid.render('diagram-svg', code)
                 element.innerHTML = svg;
                 const svgElement = element.querySelector('#diagram-svg');
                 if (svgElement) {
@@ -650,9 +647,9 @@ flowchart TB
                     svgElement.style.overflow = 'hidden';
                     enablePanZoom(svgElement);
                 }
-            }).catch(e => {
+            } catch (e) {
                 element.innerHTML = '<pre class="error">' + e + '</pre>';
-            });
+            }
         }
 
         function initLang(monacoEditor) {
