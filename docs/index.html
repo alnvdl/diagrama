@@ -748,6 +748,7 @@ flowchart TB
                 alert('Failed to render PNG.');
                 URL.revokeObjectURL(url);
             };
+            img.crossOrigin = 'anonymous';
             img.src = url;
         }
 
