@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Diagrama</title>
 
     <link rel="manifest" href="manifest.json" />
@@ -190,6 +190,27 @@
         .button-icon {
             display: inline-block;
             vertical-align: middle;
+        }
+
+        /* Only show the full-width diagram on touch devices. */
+        @media only screen and (hover: none) and (pointer: coarse) {
+            .button {
+                display: none !important;
+            }
+
+            #editor {
+                display: block;
+                margin-right: -4px;
+                min-width: 0 !important;
+                opacity: 0;
+                pointer-events: none;
+                width: 0 !important;
+            }
+
+            #diagram {
+                grid-column: 1 / 3;
+                width: 100vw !important;
+            }
         }
 
         @media print {
