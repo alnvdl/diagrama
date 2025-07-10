@@ -125,6 +125,14 @@
             width: 100dvw !important;
         }
 
+        /* Mermaid seems to render the diagram in another container when
+        loading the page (we use #diagram-svg in the code, not #ddiagram-svg).
+        This rule ensures this container does not flash when the page loads. */
+        #ddiagram-svg {
+            width: 0px;
+            height: 0px;
+        }
+
         #diagram-header {
             align-items: center;
             border-bottom: 1px solid #eee;
