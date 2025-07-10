@@ -294,6 +294,8 @@ flowchart TB
 %%   cursor (F2), delete lines (Ctrl+D) and go to matching brackets (Ctrl+M).
 %%   Open the command pallette to see all available commands (Ctrl+P).
 
+%% Diagrama is entirely client-side: no data leaves your browser.
+%% The code is available at: https://github.com/alnvdl/diagrama
 %% Diagrama is built on top of the wonderful Monaco Editor and Mermaid
 %% projects. All icons are from the Boostrap Icons project.`;
         const defaultData = {
@@ -518,7 +520,7 @@ flowchart TB
                 alert('No diagram to export.');
                 return;
             }
-            let name = document.getElementById('diagram-name').value.trim() || 'diagram';
+            let name = document.getElementById('diagram-name').value.trim() || 'Diagrama';
             if (!name.toLowerCase().endsWith('.png')) name += '.png';
             pngDownload(svgElem, name);
         });
@@ -530,7 +532,7 @@ flowchart TB
                 alert('No diagram to export.');
                 return;
             }
-            let name = document.getElementById('diagram-name').value.trim() || 'diagram';
+            let name = document.getElementById('diagram-name').value.trim() || 'Diagrama';
             if (!name.toLowerCase().endsWith('.svg')) name += '.svg';
             svgDownload(svgElem, name);
         });
