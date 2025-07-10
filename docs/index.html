@@ -242,7 +242,9 @@
 
         /* Only show the full-width diagram on touch devices. */
         @media only screen and (any-hover: none) and (pointer: coarse) {
-            .button {
+
+            .button,
+            .button-group {
                 display: none !important;
             }
 
@@ -264,7 +266,8 @@
         @media print {
 
             #editor,
-            .button {
+            .button,
+            .button-group {
                 display: none !important;
             }
 
@@ -368,7 +371,7 @@ flowchart TB
 %% - Use features available in VSCode, like find-and-replace (Ctrl+F),
 %%   multiple cursors (hold Ctrl), select occurences of the word under the
 %%   cursor (F2), delete lines (Ctrl+D) and go to matching brackets (Ctrl+M).
-%%   Open the command palette to see all available commands (Ctrl+P).
+%%   Open the command palette to see all available commands (Ctrl+Shift+P).
 
 %% Diagrama runs entirely client-side: no data leaves your browser.
 %% The code is available at: https://github.com/alnvdl/diagrama
@@ -540,7 +543,7 @@ flowchart TB
                 command: 'editor.action.addSelectionToNextFindMatch',
                 when: null,
             }, {
-                keybinding: monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyP,
+                keybinding: monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyP,
                 command: 'editor.action.quickCommand',
                 when: null,
             }, {
@@ -577,8 +580,8 @@ flowchart TB
             updateData({name: e.target.value});
         });
 
-        // Toggle editor visibility with Ctrl+E.
         document.addEventListener('keydown', function(e) {
+            // Toggle editor visibility with Ctrl+E.
             if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'e') {
                 e.preventDefault();
                 updateData({mode: data.mode === 'view' ? 'edit' : 'view', content: monacoEditor.getValue()});
