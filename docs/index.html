@@ -414,11 +414,16 @@ flowchart TB
                 nameInput.value = name;
             }
             // Update the document title based on the diagram name.
-            if (name && name.trim() !== '') {
-                document.title = name.trim() + ' - Diagrama';
-            } else {
-                document.title = 'Diagrama';
+            // Chrome already includes the app name in in standalone mode, so
+            // we only include it if not running in that mode.
+            let prefix = "";
+            if (!window.matchMedia('(display-mode: standalone)').matches) {
+                prefix = "Diagrama - ";
             }
+            if (!name) {
+                name = "Untitled diagram";
+            }
+            document.title = prefix + name.trim();
         }
 
         // Initialize mermaid.
