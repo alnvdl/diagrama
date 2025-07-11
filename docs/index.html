@@ -82,11 +82,28 @@
             margin-bottom: 16px;
         }
 
-        .app-grid {
-            display: flex;
+        #app-grid {
+            display: grid;
+            grid-template-areas:
+                "header header"
+                "editor diagram";
+            grid-template-columns: 0dvw 100dvw;
+            grid-template-rows: 3.5rem calc(100dvh - 3.5rem);
             height: 100dvh;
+            max-height: 100dvh;
+            max-width: 100dvw;
+            transition: grid-template-columns var(--ui-fast-transition);
             width: 100dvw;
-            overflow: hidden;
+        }
+
+        #app-grid.edit-mode {
+            grid-template-columns: 40dvw 60dvw;
+        }
+
+        .app-grid>* {
+            min-height: 0;
+            min-width: 0;
+            overflow: auto;
         }
 
         .error {
@@ -101,13 +118,8 @@
             background-color: var(--ui-editor-background-color);
             border: none;
             box-shadow: 4px 0 4px 0 rgba(0, 0, 0, 0.25);
-            display: block;
-            height: 100dvh;
-            margin: 0;
-            min-width: 0;
+            grid-area: editor;
             padding: 0;
-            transition: width var(--ui-fast-transition);
-            width: 40dvw;
             z-index: 2;
         }
 
@@ -120,19 +132,9 @@
         }
 
         #diagram {
-            border: none;
             display: grid;
-            flex: 1;
-            grid-template-rows: auto 1fr;
-            height: 100dvh;
-            margin: 0;
-            padding: 0;
-            transition: width var(--ui-fast-transition);
-            width: 60dvw;
-        }
-
-        #diagram.full-width {
-            width: 100dvw !important;
+            grid-area: diagram;
+            padding: 0.5rem 1rem;
         }
 
         /* Mermaid seems to render the diagram in another container when
@@ -143,22 +145,14 @@
             height: 0px;
         }
 
-        #diagram-header {
-            align-items: center;
+        #header {
             border-bottom: 1px solid var(--ui-component-border-color);
             display: flex;
             flex: 0 0 auto;
             gap: 1rem;
+            grid-area: header;
             min-height: 0;
             padding: 0.75rem 1.5rem 0.75rem 1.5rem;
-        }
-
-        #diagram-content {
-            grid-row: 2 / 3;
-            min-height: 0;
-            overflow: visible;
-            position: relative;
-            padding: 0.5rem 1rem;
         }
 
         #diagram-name {
@@ -216,7 +210,6 @@
         .button-group {
             border: 1px solid var(--ui-component-border-color);
             display: inline-flex;
-            overflow: hidden;
         }
 
         .button-group .button:not(:first-child) {
@@ -250,40 +243,16 @@
             opacity: 1;
         }
 
-        /* Only show the full-width diagram on touch devices. */
-        @media only screen and (any-hover: none) and (pointer: coarse) {
-
-            .button,
-            .button-group {
-                display: none !important;
+        /* Only show the full-width diagram on touch devices and in print. */
+        @media print, only screen and (any-hover: none) and (pointer: coarse) {
+            #app-grid.edit-mode {
+                grid-template-columns: 0dvw 100dvw;
             }
 
+            .button,
+            .button-group,
             #editor {
-                display: block;
-                margin-right: -4px;
-                min-width: 0 !important;
-                opacity: 0;
-                pointer-events: none;
-                width: 0 !important;
-            }
-
-            #diagram {
-                grid-column: 1 / 3;
-                width: 100dvw !important;
-            }
-        }
-
-        @media print {
-
-            #editor,
-            .button,
-            .button-group {
                 display: none !important;
-            }
-
-            #diagram {
-                grid-column: 1 / 3;
-                width: 100dvw !important;
             }
         }
     </style>
@@ -299,51 +268,50 @@
 
     <div id="share-overlay">Link copied to clipboard</div>
 
-    <div class="app-grid">
-        <div id="editor" class="hidden"></div>
-        <div id="diagram" class="full-width">
-            <div id="diagram-header">
-                <input id="diagram-name" type="text" placeholder="Untitled diagram" />
-                <div class="button-group">
-                    <div class="download-icon">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
-                            class="bi bi-download button-icon" viewBox="0 0 16 16">
-                            <path
-                                d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5" />
-                            <path
-                                d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708z" />
-                        </svg>
-                    </div>
-                    <button class="button" id="download-svg"><span>SVG</span></button>
-                    <button class="button" id="download-png"><span>PNG</span></button>
+    <div id="app-grid" class="view-mode">
+        <div id="header">
+            <input id="diagram-name" type="text" placeholder="Untitled diagram" />
+            <div class="button-group">
+                <div class="download-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                        class="bi bi-download button-icon" viewBox="0 0 16 16">
+                        <path
+                            d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5" />
+                        <path
+                            d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708z" />
+                    </svg>
                 </div>
-                <div class="button-group">
-                    <button class="button fixed-width" id="share">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
-                            class="bi bi-share" viewBox="0 0 16 16">
-                            <path
-                                d="M13.5 1a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3M11 2.5a2.5 2.5 0 1 1 .603 1.628l-6.718 3.12a2.5 2.5 0 0 1 0 1.504l6.718 3.12a2.5 2.5 0 1 1-.488.876l-6.718-3.12a2.5 2.5 0 1 1 0-3.256l6.718-3.12A2.5 2.5 0 0 1 11 2.5m-8.5 4a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3m11 5.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3" />
-                        </svg><span>Share</span>
-                    </button>
-                    <button class="button fixed-width" id="edit-mode">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
-                            class="bi bi-pencil button-icon" viewBox="0 0 16 16">
-                            <path
-                                d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325" />
-                        </svg><span>Edit</span>
-                    </button>
-                    <button class="button fixed-width" id="view-mode">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
-                            class="bi bi-eye button-icon" viewBox="0 0 16 16">
-                            <path
-                                d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8M1.173 8a13 13 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5s3.879 1.168 5.168 2.457A13 13 0 0 1 14.828 8q-.086.13-.195.288c-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5s-3.879-1.168-5.168-2.457A13 13 0 0 1 1.172 8z" />
-                            <path
-                                d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5M4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0" />
-                        </svg><span>View</span>
-                    </button>
-                </div>
+                <button class="button" id="download-svg"><span>SVG</span></button>
+                <button class="button" id="download-png"><span>PNG</span></button>
             </div>
-            <div id="diagram-content"></div>
+            <div class="button-group">
+                <button class="button fixed-width" id="share">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                        class="bi bi-share" viewBox="0 0 16 16">
+                        <path
+                            d="M13.5 1a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3M11 2.5a2.5 2.5 0 1 1 .603 1.628l-6.718 3.12a2.5 2.5 0 0 1 0 1.504l6.718 3.12a2.5 2.5 0 1 1-.488.876l-6.718-3.12a2.5 2.5 0 1 1 0-3.256l6.718-3.12A2.5 2.5 0 0 1 11 2.5m-8.5 4a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3m11 5.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3" />
+                    </svg><span>Share</span>
+                </button>
+                <button class="button fixed-width" id="edit-mode">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                        class="bi bi-pencil button-icon" viewBox="0 0 16 16">
+                        <path
+                            d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325" />
+                    </svg><span>Edit</span>
+                </button>
+                <button class="button fixed-width" id="view-mode">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                        class="bi bi-eye button-icon" viewBox="0 0 16 16">
+                        <path
+                            d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8M1.173 8a13 13 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5s3.879 1.168 5.168 2.457A13 13 0 0 1 14.828 8q-.086.13-.195.288c-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5s-3.879-1.168-5.168-2.457A13 13 0 0 1 1.172 8z" />
+                        <path
+                            d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5M4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0" />
+                    </svg><span>View</span>
+                </button>
+            </div>
+        </div>
+        <div id="editor" class="hidden"></div>
+        <div id="diagram">
         </div>
     </div>
     <script src="monaco-editor/min/vs/loader.js"></script>
@@ -372,8 +340,8 @@ flowchart TB
     step3 --> step4
     step4 --> step5
     step5 --> step6
-    step5 --> step7
     step5 --> step8
+    step6 --> step7
 
 %% In Diagrama, you can also:
 %% * Name your diagram when in edit mode.
@@ -459,19 +427,20 @@ flowchart TB
         }
 
         function setMode(mode) {
+            const appGrid = document.getElementById('app-grid');
             const editor = document.getElementById('editor');
             const diagram = document.getElementById('diagram');
             const diagramNameElem = document.getElementById('diagram-name');
             if (mode === 'edit') {
+                appGrid.classList.replace('view-mode', 'edit-mode');
                 editor.classList.remove('hidden');
-                diagram.classList.remove('full-width');
                 if (diagramNameElem) {
                     diagramNameElem.readOnly = false;
                     diagramNameElem.classList.remove('no-caret');
                 }
             } else if (mode === 'view') {
+                appGrid.classList.replace('edit-mode', 'view-mode');
                 editor.classList.add('hidden');
-                diagram.classList.add('full-width');
                 if (diagramNameElem) {
                     diagramNameElem.readOnly = true;
                     diagramNameElem.classList.add('no-caret');
@@ -576,8 +545,8 @@ flowchart TB
         window.addEventListener('resize', () => {monacoEditor.layout()});
 
         // Re-layout Monaco when width transitions complete.
-        document.querySelector("#editor").addEventListener('transitionend', function(e) {
-            if (e.propertyName === 'width') {
+        document.querySelector("#app-grid").addEventListener('transitionend', function(e) {
+            if (e.propertyName === 'grid-template-columns') {
                 monacoEditor.layout();
             }
         });
@@ -642,7 +611,7 @@ flowchart TB
         loadDataFromHashOrDefault();
 
         async function renderDiagram(code) {
-            let element = document.querySelector('#diagram-content');
+            let element = document.querySelector('#diagram');
             try {
                 const {svg} = await window.mermaid.render('diagram-svg', code)
                 element.innerHTML = svg;
