@@ -14,6 +14,20 @@
     <link rel="icon" href="./icon.svg" sizes="any" type="image/svg+xml">
 
     <style>
+        /* Define variables */
+        :root {
+            --ui-font-size: 0.85rem;
+            --ui-font-weight: 500;
+            --ui-font-color: #222;
+            --ui-background-color: #fff;
+            --ui-component-hover-color: #ddd;
+            --ui-component-color: #eee;
+            --ui-component-border-color: #ccc;
+            --ui-editor-background-color: #1e1e1e;
+            --ui-fast-transition: 0.15s;
+            --ui-slow-transition: 0.3s;
+        }
+
         body {
             margin: 0;
             font-family: system-ui, -apple-system, "Segoe UI", Roboto,
@@ -24,7 +38,7 @@
 
         #loading-overlay {
             align-items: center;
-            background: #fff;
+            background: var(--ui-background-color);
             display: flex;
             flex-direction: column;
             height: 100dvh;
@@ -32,7 +46,7 @@
             left: 0;
             position: fixed;
             top: 0;
-            transition: opacity 0.3s;
+            transition: opacity var(--ui-fast-transition);
             width: 100dvw;
             z-index: 9999;
         }
@@ -53,27 +67,27 @@
             }
         }
 
+        .loading-label {
+            color: var(--ui-font-color);
+            font-size: var(--ui-font-size);
+            font-weight: var(--ui-font-weight);
+        }
+
         .spinner {
             width: 48px;
             height: 48px;
-            border: 6px solid #eee;
-            border-top: 6px solid #222;
+            border: 6px solid var(--ui-component-color);
+            border-top: 6px solid var(--ui-font-color);
             border-radius: 50%;
             animation: spin 1s linear infinite;
             margin-bottom: 16px;
         }
 
-        .loading-label {
-            color: #222;
-            font-size: 1.3rem;
-        }
-
         .app-grid {
-            display: grid;
-            grid-template-columns: 40vw 1fr;
-            grid-template-rows: 100dvh;
+            display: flex;
             height: 100dvh;
             width: 100dvw;
+            overflow: hidden;
         }
 
         .error {
@@ -85,43 +99,40 @@
         }
 
         #editor {
+            background-color: var(--ui-editor-background-color);
             border: none;
             box-shadow: 4px 0 4px 0 rgba(0, 0, 0, 0.25);
             display: block;
-            grid-column: 1 / 2;
-            grid-row: 1 / 2;
             height: 100dvh;
-            margin-right: 0;
+            margin: 0;
             min-width: 0;
             padding: 0;
-            position: relative;
-            width: 100%;
+            transition: width var(--ui-fast-transition);
+            width: 40dvw;
             z-index: 2;
         }
 
         #editor.hidden {
-            display: block;
-            margin-right: -4px;
-            min-width: 0 !important;
-            opacity: 0;
-            pointer-events: none;
             width: 0 !important;
+        }
+
+        #editor.hidden>.monaco-editor {
+            display: none;
         }
 
         #diagram {
             border: none;
             display: grid;
-            grid-column: 2 / 3;
-            grid-row: 1 / 2;
+            flex: 1;
             grid-template-rows: auto 1fr;
             height: 100dvh;
+            margin: 0;
             padding: 0;
-            position: relative;
-            width: 100%;
+            transition: width var(--ui-fast-transition);
+            width: 60dvw;
         }
 
         #diagram.full-width {
-            grid-column: 1 / 3;
             width: 100dvw !important;
         }
 
@@ -135,12 +146,12 @@
 
         #diagram-header {
             align-items: center;
-            border-bottom: 1px solid #eee;
+            border-bottom: 1px solid var(--ui-component-border-color);
             display: flex;
             flex: 0 0 auto;
             gap: 1rem;
             min-height: 0;
-            padding: 0.5rem 1.5rem 0.5rem 1.5rem;
+            padding: 0.75rem 1.5rem 0.75rem 1.5rem;
         }
 
         #diagram-content {
@@ -154,7 +165,7 @@
         #diagram-name {
             background: transparent;
             border: none !important;
-            color: #222;
+            color: var(--ui-font-color);
             flex: 1 1 auto;
             font-size: 1.5rem;
             max-width: unset;
@@ -172,18 +183,18 @@
 
         .button {
             align-items: center;
-            background: #eee;
+            background: var(--ui-component-color);
             border: none;
-            color: #222;
+            color: var(--ui-font-color);
             cursor: pointer;
             display: inline-flex;
             font-family: inherit;
-            font-size: 0.85rem;
-            font-weight: 500;
+            font-size: var(--ui-font-size);
+            font-weight: var(--ui-font-weight);
             gap: 0.5rem;
             justify-content: center;
             padding: 0.5rem;
-            transition: background-color 0.3s;
+            transition: background-color var(--ui-slow-transition);
         }
 
         .button.fixed-width {
@@ -195,7 +206,7 @@
         }
 
         .button:hover {
-            background-color: #ddd;
+            background-color: var(--ui-component-hover-color);
         }
 
         .button-icon {
@@ -204,27 +215,27 @@
         }
 
         .button-group {
-            border: 1px solid #ccc;
+            border: 1px solid var(--ui-component-border-color);
             display: inline-flex;
             overflow: hidden;
         }
 
         .button-group .button:not(:first-child) {
-            border-left: 1px solid #ccc;
+            border-left: 1px solid var(--ui-component-border-color);
         }
 
         .download-icon {
             align-items: center;
-            background: #fff;
+            background: var(--ui-background-color);
             display: inline-flex;
             padding: 0 0.5rem;
         }
 
         #share-overlay {
-            background: #222;
-            color: #fff;
-            font-size: 0.85rem;
-            font-weight: 500;
+            background: var(--ui-font-color);
+            color: var(--ui-background-color);
+            font-size: var(--ui-font-size);
+            font-weight: var(--ui-font-weight);
             opacity: 0;
             padding: 0.75rem 1.5rem;
             pointer-events: none;
@@ -232,7 +243,7 @@
             right: 1.5rem;
             top: 3.5rem;
             transform: none;
-            transition: opacity 0.3s;
+            transition: opacity var(--ui-slow-transition);
             z-index: 9999;
         }
 
@@ -457,11 +468,6 @@ flowchart TB
                     diagramNameElem.readOnly = false;
                     diagramNameElem.classList.remove('no-caret');
                 }
-                setTimeout(function() {
-                    if (monacoEditor) {
-                        monacoEditor.layout();
-                    }
-                }, 100);
             } else if (mode === 'view') {
                 editor.classList.add('hidden');
                 diagram.classList.add('full-width');
@@ -469,11 +475,6 @@ flowchart TB
                     diagramNameElem.readOnly = true;
                     diagramNameElem.classList.add('no-caret');
                 }
-                setTimeout(function() {
-                    if (monacoEditor) {
-                        monacoEditor.layout();
-                    }
-                }, 100);
             }
 
             // Hide the view/edit buttons based on the mode.
@@ -568,20 +569,25 @@ flowchart TB
             monacoEditor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, function() {
                 updateData({content: monacoEditor.getValue()});
             });
-
-            // Handle window resize.
-            window.addEventListener('resize', function() {
-                monacoEditor.layout();
-            });
         });
 
-        // Handle diagram name changes, but do not update diagram on input.
+        // Handle window resize.
+        window.addEventListener('resize', () => {monacoEditor.layout()});
+
+        // Re-layout Monaco when width transitions complete.
+        document.querySelector("#editor").addEventListener('transitionend', function(e) {
+            if (e.propertyName === 'width') {
+                monacoEditor.layout();
+            }
+        });
+
+        // Handle diagram name changes.
         document.getElementById('diagram-name').addEventListener('input', function(e) {
             updateData({name: e.target.value});
         });
 
+        // Toggle editor visibility with Ctrl+E.
         document.addEventListener('keydown', function(e) {
-            // Toggle editor visibility with Ctrl+E.
             if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'e') {
                 e.preventDefault();
                 updateData({mode: data.mode === 'view' ? 'edit' : 'view', content: monacoEditor.getValue()});
@@ -882,9 +888,11 @@ flowchart TB
             var overlay = document.getElementById('loading-overlay');
             if (overlay) {
                 overlay.style.opacity = '0';
+                // Wait a bit before hiding the overlay to allow the fade-out
+                // animation to complete.
                 setTimeout(function() {
                     overlay.style.display = 'none';
-                }, 350);
+                }, 200);
             }
         });
     </script>
