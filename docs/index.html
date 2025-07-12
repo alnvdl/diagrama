@@ -23,8 +23,8 @@
             --ui-button-color: #eee;
             --ui-border-color: #ccc;
             --ui-editor-background-color: #1e1e1e;
-            --ui-fast-transition: 0.15s;
-            --ui-slow-transition: 0.3s;
+            --ui-fast-transition: 150ms;
+            --ui-slow-transition: 300ms;
         }
 
         body {
@@ -35,6 +35,7 @@
                 "Segoe UI Symbol", "Noto Color Emoji";
         }
 
+        /* Loading overlay */
         #loading-overlay {
             align-items: center;
             background: var(--ui-background-color);
@@ -82,6 +83,7 @@
             margin-bottom: 16px;
         }
 
+        /* App */
         #app-grid {
             display: grid;
             grid-template-areas:
@@ -92,7 +94,7 @@
             height: 100dvh;
             max-height: 100dvh;
             max-width: 100dvw;
-            transition: grid-template-columns var(--ui-fast-transition);
+            transition: grid-template-columns var(--ui-fast-transition) linear;
             width: 100dvw;
         }
 
@@ -106,45 +108,7 @@
             overflow: auto;
         }
 
-        .error {
-            color: red;
-            font-family: monospace;
-            overflow-x: auto;
-            padding: 0.5rem 1.5rem 0.5rem 1.5rem;
-            white-space: pre-wrap;
-        }
-
-        #editor {
-            background-color: var(--ui-editor-background-color);
-            border: none;
-            box-shadow: 4px 0 4px 0 rgba(0, 0, 0, 0.25);
-            grid-area: editor;
-            padding: 0;
-            z-index: 2;
-        }
-
-        #editor.hidden {
-            width: 0 !important;
-        }
-
-        #editor.hidden>.monaco-editor {
-            display: none;
-        }
-
-        #diagram {
-            display: grid;
-            grid-area: diagram;
-            padding: 0.5rem 1rem;
-        }
-
-        /* Mermaid seems to render the diagram in another container when
-        loading the page (we use #diagram-svg in the code, not #ddiagram-svg).
-        This rule ensures this container does not flash when the page loads. */
-        #ddiagram-svg {
-            width: 0px;
-            height: 0px;
-        }
-
+        /* Header */
         #header {
             border-bottom: 1px solid var(--ui-border-color);
             display: flex;
@@ -174,7 +138,7 @@
             caret-color: transparent;
         }
 
-        .button {
+        .dg-button {
             align-items: center;
             background: var(--ui-button-color);
             border: none;
@@ -190,29 +154,29 @@
             transition: background-color var(--ui-slow-transition);
         }
 
-        .button.fixed-width {
+        .dg-button.fixed-width {
             width: 5rem;
         }
 
-        .button.hidden {
+        .dg-button.hidden {
             display: none !important;
         }
 
-        .button:hover {
+        .dg-button:hover {
             background-color: var(--ui-button-hover-color);
         }
 
-        .button-icon {
+        .dg-button-icon {
             display: inline-block;
             vertical-align: middle;
         }
 
-        .button-group {
+        .dg-button-group {
             border: 1px solid var(--ui-border-color);
             display: inline-flex;
         }
 
-        .button-group .button:not(:first-child) {
+        .dg-button-group .dg-button:not(:first-child) {
             border-left: 1px solid var(--ui-border-color);
         }
 
@@ -243,19 +207,60 @@
             opacity: 1;
         }
 
+        /* Editor */
+        #editor {
+            background-color: var(--ui-editor-background-color);
+            border-right: 1px solid var(--ui-border-color);
+            grid-area: editor;
+            padding: 0;
+            z-index: 2;
+        }
+
+        #editor.hidden>.monaco-editor {
+            display: none;
+        }
+
+        /* Diagram */
+        #diagram {
+            display: grid;
+            grid-area: diagram;
+            padding: 0.5rem 1rem;
+        }
+
+        /* Mermaid seems to render the diagram in another container when
+        loading the page (we use #diagram-svg in the code, not #ddiagram-svg).
+        This rule ensures this container does not flash when the page loads. */
+        #ddiagram-svg {
+            width: 0px;
+            height: 0px;
+        }
+
+        .error {
+            color: red;
+            font-family: monospace;
+            overflow-x: auto;
+            padding: 0.5rem 1.5rem 0.5rem 1.5rem;
+            white-space: pre-wrap;
+        }
+
+        /* Print */
         @media print {
             #app-grid.edit-mode {
                 grid-template-columns: 0dvw 100dvw;
             }
 
-            .button,
-            .button-group,
+            .dg-button,
+            .dg-button-group,
             #editor {
                 display: none !important;
             }
         }
 
-        @media (max-width: 800px) {
+        /* Touch-screen-only devices and small screens */
+        @media only screen and (any-hover: none) and (pointer: coarse),
+        only screen and (max-width: 1280px) {
+
+            /* App */
             #app-grid {
                 grid-template-rows: 3rem calc(100dvh - 3rem);
                 grid-template-columns: 0dvw 100dvw;
@@ -265,8 +270,22 @@
                 grid-template-columns: 100dvw 0dvw;
             }
 
+            /* Header */
             #header {
                 padding: 0.5rem 0.5rem 0.5rem 0.5rem
+            }
+
+            #diagram-name {
+                font-size: 1.0em;
+            }
+
+            .dg-button,
+            .dg-button.fixed-width {
+                width: auto;
+            }
+
+            .dg-button>span.label.collapse {
+                display: none !important;
             }
 
             #share-overlay {
@@ -274,21 +293,14 @@
                 top: 3rem;
             }
 
-            #diagram-name {
-                font-size: 1.0em;
+            /* Editor */
+            #editor {
+                border: none;
             }
 
+            /* Diagram */
             #diagram {
                 padding: 0;
-            }
-
-            .button,
-            .button.fixed-width {
-                width: auto;
-            }
-
-            .button>span.label.collapse {
-                display: none !important;
             }
         }
     </style>
@@ -307,7 +319,7 @@
     <div id="app-grid" class="view-mode">
         <div id="header">
             <input id="diagram-name" type="text" placeholder="Untitled diagram" />
-            <div class="button-group">
+            <div class="dg-button-group">
                 <div class="download-icon">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
                         class="bi bi-download button-icon" viewBox="0 0 16 16">
@@ -317,25 +329,25 @@
                             d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708z" />
                     </svg>
                 </div>
-                <button class="button" id="download-svg"><span class="label">SVG</span></button>
-                <button class="button" id="download-png"><span class="label">PNG</span></button>
+                <button class="dg-button" id="download-svg"><span class="label">SVG</span></button>
+                <button class="dg-button" id="download-png"><span class="label">PNG</span></button>
             </div>
-            <div class="button-group">
-                <button class="button fixed-width" id="share">
+            <div class="dg-button-group">
+                <button class="dg-button fixed-width" id="share">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
                         class="bi bi-share" viewBox="0 0 16 16">
                         <path
                             d="M13.5 1a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3M11 2.5a2.5 2.5 0 1 1 .603 1.628l-6.718 3.12a2.5 2.5 0 0 1 0 1.504l6.718 3.12a2.5 2.5 0 1 1-.488.876l-6.718-3.12a2.5 2.5 0 1 1 0-3.256l6.718-3.12A2.5 2.5 0 0 1 11 2.5m-8.5 4a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3m11 5.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3" />
                     </svg><span class="label collapse">Share</span>
                 </button>
-                <button class="button fixed-width" id="edit-mode">
+                <button class="dg-button fixed-width" id="edit-mode">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
                         class="bi bi-pencil button-icon" viewBox="0 0 16 16">
                         <path
                             d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325" />
                     </svg><span class="label collapse">Edit</span>
                 </button>
-                <button class="button fixed-width" id="view-mode">
+                <button class="dg-button fixed-width" id="view-mode">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
                         class="bi bi-eye button-icon" viewBox="0 0 16 16">
                         <path
@@ -379,14 +391,16 @@ flowchart TB
     step5 --> step8
     step6 --> step7
 
-%% In Diagrama, you can also:
+%% With Diagrama, you can also:
+%% * Install it as a web app.
 %% * Name your diagram when in edit mode.
 %% * Pan and zoom the diagram with the mouse.
 %% * Define a custom scale when exporting the diagram as a PNG.
 %% * Print the diagram using your browser's print functionality.
 %% * Use features available in VSCode, like find-and-replace (Ctrl+F),
 %%   multiple cursors (hold Ctrl), select occurences of the word under the
-%%   cursor (F2), delete lines (Ctrl+D) and go to matching brackets (Ctrl+M).
+%%   cursor (F2), delete lines (Ctrl+D), go to matching brackets (Ctrl+M) and
+%%   set the font size (hold Ctrl and scroll).
 %%   Open the command palette to see all available commands (Ctrl+Shift+P).
 
 %% Diagrama runs entirely client-side: no data leaves your browser.
@@ -524,6 +538,7 @@ flowchart TB
 
         // Initialize Monaco.
         let monacoEditor;
+        let fontSizeOverride = false;
         require(['vs/editor/editor.main'], function() {
             initLang(monaco);
             initTheme(monaco);
@@ -540,6 +555,7 @@ flowchart TB
                 theme: "diagrama-dark",
                 value: data.content,
                 automaticLayout: true,
+                lineNumbersMinChars: 3,
             });
             autoEditorFontSize();
 
@@ -577,6 +593,22 @@ flowchart TB
             monacoEditor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, function() {
                 updateData({content: monacoEditor.getValue()});
             });
+
+            // Set font size on scroll.
+            monacoEditor.getDomNode().addEventListener('wheel', function(e) {
+                if (monacoEditor && e.ctrlKey) {
+                    e.preventDefault();
+                    let fontSize = monacoEditor.getOption(monaco.editor.EditorOption.fontSize);
+                    if (e.deltaY < 0) {
+                        fontSize += 1; // Zoom in
+                    } else {
+                        fontSize = Math.max(8, fontSize - 1); // Zoom out
+                    }
+                    let lineHeight = lineHeightForFontSize(fontSize);
+                    monacoEditor.updateOptions({fontSize, lineHeight});
+                    fontSizeOverride = true;
+                }
+            }, {passive: false});
         });
 
         // Handle diagram name changes.
@@ -662,14 +694,19 @@ flowchart TB
             }
         }
 
+        function lineHeightForFontSize(fontSize) {
+            return Math.floor(fontSize * 1.618);
+        }
+
         function autoEditorFontSize() {
+            if (!monacoEditor || fontSizeOverride) return;
             const editor = document.getElementById("editor");
             // The number 55 was determined as being a decent match calculating
             // the font size based upon the preferences of the author.
             // The line height proportion is the golden ratio, which happened
             // to produce a result that the author liked as well.
             let fontSize = Math.max(Math.floor(editor.offsetWidth / 55), 8);
-            let lineHeight = Math.floor(fontSize * 1.618);
+            let lineHeight = lineHeightForFontSize(fontSize);
             monacoEditor.updateOptions({fontSize, lineHeight});
         }
 
@@ -729,7 +766,8 @@ flowchart TB
                     "editor.selectionBackground": "#676b7180",
                     "editor.selectionHighlightBackground": "#575b6180",
                     "editor.lineHighlightBackground": "#303030",
-                    "editorLineNumber.activeForeground": "#949494",
+                    "editorLineNumber.foreground": "#3f3f3f",
+                    "editorLineNumber.activeForeground": "#6f6f6f",
                     "editor.wordHighlightBackground": "#4747a180",
                     "editor.wordHighlightStrongBackground": "#6767ce80",
                     "editorCursor.foreground": "#c07020",
