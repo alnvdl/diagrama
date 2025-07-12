@@ -398,10 +398,10 @@ flowchart TB
 %% * Define a custom scale when exporting the diagram as a PNG.
 %% * Print the diagram using your browser's print functionality.
 %% * Use features available in VSCode, like find-and-replace (Ctrl+F),
-%%   multiple cursors (hold Ctrl), select occurences of the word under the
-%%   cursor (F2), delete lines (Ctrl+D), go to matching brackets (Ctrl+M) and
-%%   set the font size (hold Ctrl and scroll).
-%%   Open the command palette to see all available commands (Ctrl+Shift+P).
+%%   multiple cursors (hold Ctrl), select occurences of the word under
+%%   the cursor (F2), delete lines (Ctrl+D), go to matching brackets
+%%   (Ctrl+M) and set the font size (hold Ctrl and scroll).
+%%   The command palette shows all available commands (Ctrl+Shift+P).
 
 %% Diagrama runs entirely client-side: no data leaves your browser.
 %% The code is available at: https://github.com/alnvdl/diagrama
@@ -705,7 +705,7 @@ flowchart TB
             // the font size based upon the preferences of the author.
             // The line height proportion is the golden ratio, which happened
             // to produce a result that the author liked as well.
-            let fontSize = Math.max(Math.floor(editor.offsetWidth / 55), 8);
+            let fontSize = Math.max(Math.floor(editor.offsetWidth / 55), 9);
             let lineHeight = lineHeightForFontSize(fontSize);
             monacoEditor.updateOptions({fontSize, lineHeight});
         }
