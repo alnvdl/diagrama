@@ -18,6 +18,7 @@
             --ui-font-size: 0.85rem;
             --ui-font-weight: 500;
             --ui-font-color: #222;
+            --ui-error-color: #dc3545;
             --ui-background-color: #fff;
             --ui-button-hover-color: #ddd;
             --ui-button-color: #eee;
@@ -202,6 +203,11 @@
             transform: none;
             transition: opacity var(--ui-slow-transition);
             z-index: 9999;
+            max-width: 15rem;
+        }
+
+        #share-overlay.error {
+            background-color: var(--ui-error-color);
         }
 
         #share-overlay.show {
@@ -236,8 +242,8 @@
             height: 0px;
         }
 
-        .error {
-            color: red;
+        #diagram-error {
+            color: var(--ui-error-color);
             font-family: monospace;
             overflow-x: auto;
             padding: 0.5rem 1.5rem 0.5rem 1.5rem;
@@ -326,7 +332,7 @@
         </div>
     </div>
 
-    <div id="share-overlay">Link copied to clipboard</div>
+    <div id="share-overlay"></div>
 
     <div id="app-grid" class="view-mode">
         <div id="header">
@@ -428,10 +434,32 @@ flowchart TB
         let data = null;
         let shareOverlayTimeout;
 
-        // updateData patches the data object and updates the UI accordingly.
-        // It is an async function because it may need to trigger a re-render
-        // of the diagram.
-        async function updateData(patch) {
+        // loadData tries to load diagram data in the following order until one
+        // attempt succeeds: base64-encoded JSON in URL hash, JSON in local
+        // storage, default template. It always returns a valid data object
+        // ready to be used with updateData.
+        function loadData() {
+            try {
+                const hash = window.location.hash.replace(/^#/, '');
+                if (!hash) throw new Error("no data in hash");
+                const json = decodeURIComponent(escape(atob(hash)));
+                return Object.assign({}, defaultData, JSON.parse(json));
+            } catch (e) {
+                try {
+                    const dataStr = localStorage.getItem("data");
+                    if (!dataStr) throw new Error("no data in local storage");
+                    return Object.assign({}, defaultData, JSON.parse(dataStr));
+                } catch (e) {
+                    return defaultData;
+                }
+            }
+            return defaultData;
+        }
+
+        // setData patches the in-memroy data object, updates the UI
+        // accordingly and saves it. It is an async function because it may
+        // need to trigger a re-render of the diagram.
+        async function setData(patch, forceRender) {
             let oldData = data;
             data = Object.assign({}, data, patch);
 
@@ -441,7 +469,7 @@ flowchart TB
 
             // If the content has changed, re-render the diagram and update the
             // editor.
-            if (!oldData || oldData.content != data.content) {
+            if (forceRender || !oldData || oldData.content != data.content) {
                 await renderDiagram(data.content);
 
                 if (monacoEditor && monacoEditor.getValue() !== data.content) {
@@ -451,41 +479,28 @@ flowchart TB
                 }
             }
 
-            // UI/browser side-effects.
             setMode(data.mode);
-            encodeDataToHash(data);
+            saveData(data);
         }
 
-        function encodeDataToHash(data) {
+        function saveData(data) {
+            // Remove the hashchange listener to avoid triggering another
+            // update based on the change we are making here.
+            window.removeEventListener('hashchange', () => setData(loadData()));
             try {
                 const json = JSON.stringify(data);
+                localStorage.setItem("data", json);
                 const b64 = btoa(unescape(encodeURIComponent(json)));
                 window.location.hash = b64;
             } catch (e) {
                 // Ignore encoding errors.
+            } finally {
+                // Only setup the hashchange listener after a timeout, to avoid
+                // triggering another update immediately.
+                setTimeout(() => {
+                    window.addEventListener('hashchange', () => setData(loadData()));
+                }, 0);
             }
-        }
-
-        function decodeDataFromHash() {
-            try {
-                const hash = window.location.hash.replace(/^#/, '');
-                if (!hash) return null;
-                const json = decodeURIComponent(escape(atob(hash)));
-                return JSON.parse(json);
-            } catch (e) {
-                return null;
-            }
-        }
-
-        function loadDataFromHashOrDefault() {
-            let proposedData;
-            const hashData = decodeDataFromHash();
-            if (hashData && typeof hashData === 'object') {
-                proposedData = Object.assign({}, defaultData, hashData);
-            } else {
-                proposedData = defaultData;
-            }
-            updateData(proposedData);
         }
 
         function setMode(mode) {
@@ -541,7 +556,7 @@ flowchart TB
             document.title = prefix + name.trim();
         }
 
-        // Initialize mermaid.
+        // Initialize Mermaid.
         mermaid.initialize({
             theme: 'neutral',
         });
@@ -550,7 +565,6 @@ flowchart TB
 
         // Initialize Monaco.
         let monacoEditor;
-        let fontSizeOverride = false;
         require(['vs/editor/editor.main'], function() {
             initLang(monaco);
             initTheme(monaco);
@@ -558,7 +572,6 @@ flowchart TB
             monacoEditor = monaco.editor.create(document.getElementById('editor'), {
                 guides: {highlightActiveIndentation: false, indentation: false},
                 language: 'mermaid',
-                lineHeight: 22,
                 minimap: {enabled: false},
                 multiCursorModifier: "ctrlCmd",
                 overviewRulerLanes: 0,
@@ -569,8 +582,9 @@ flowchart TB
                 automaticLayout: true,
                 lineNumbersMinChars: 3,
             });
-            autoEditorFontSize();
+            setEditorFontSize(localStorage.getItem("fontSizeOverride"));
 
+            // Editor-specific keyboard shortcuts.
             monaco.editor.addKeybindingRules([{
                 keybinding: monaco.KeyCode.F2,
                 command: 'editor.action.selectHighlights',
@@ -600,73 +614,67 @@ flowchart TB
                 command: 'editor.action.insertCursorBelow',
                 when: null,
             }]);
-
             // Update data on Ctrl+Enter.
             monacoEditor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, function() {
-                updateData({content: monacoEditor.getValue()});
+                setData({content: monacoEditor.getValue()}, true);
+            });
+            // Go back to auto-font-size on Ctrl+Shift+0.
+            monacoEditor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.Digit0, function() {
+                localStorage.removeItem("fontSizeOverride");
+                setEditorFontSize();
             });
 
-            // Set font size on scroll.
+            // Set font size on Ctrl+scroll.
             monacoEditor.getDomNode().addEventListener('wheel', function(e) {
                 if (monacoEditor && e.ctrlKey) {
                     e.preventDefault();
                     let fontSize = monacoEditor.getOption(monaco.editor.EditorOption.fontSize);
-                    if (e.deltaY < 0) {
-                        fontSize += 1; // Zoom in
-                    } else {
-                        fontSize = Math.max(8, fontSize - 1); // Zoom out
-                    }
-                    let lineHeight = lineHeightForFontSize(fontSize);
-                    monacoEditor.updateOptions({fontSize, lineHeight});
-                    fontSizeOverride = true;
+                    fontSize += e.deltaY < 0 ? 1 : -1;
+                    localStorage.setItem("fontSizeOverride", fontSize);
+                    setEditorFontSize(fontSize);
                 }
             }, {passive: false});
         });
 
         // Handle diagram name changes.
         document.getElementById('diagram-name').addEventListener('input', function(e) {
-            updateData({name: e.target.value});
+            setData({name: e.target.value});
         });
 
-        // Toggle editor visibility with Ctrl+E.
+        // App-wide keyboard shorcuts.
         document.addEventListener('keydown', function(e) {
+            // Toggle editor visibility with Ctrl+E.
             if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'e') {
                 e.preventDefault();
-                updateData({mode: data.mode === 'view' ? 'edit' : 'view', content: monacoEditor.getValue()});
+                setData({mode: data.mode === 'view' ? 'edit' : 'view', content: monacoEditor.getValue()});
+            }
+            // Share the diagram with Ctrl+S.
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+                e.preventDefault();
+                share();
+            }
+            // Reset the diagram with Ctrl+Alt+R.
+            if ((e.ctrlKey || e.metaKey) && e.altKey && e.key.toLowerCase() === 'r') {
+                e.preventDefault();
+                setData(defaultData);
             }
         });
 
         // Swap between edit and view modes.
         document.getElementById('edit-mode').addEventListener('click', function() {
-            updateData({mode: 'edit'});
+            setData({mode: 'edit'});
         });
         document.getElementById('view-mode').addEventListener('click', function() {
-            updateData({mode: 'view', content: monacoEditor.getValue()});
-        });
-
-        // On hash change, reload model and update UI.
-        window.addEventListener('hashchange', function() {
-            loadDataFromHashOrDefault();
+            setData({mode: 'view', content: monacoEditor.getValue()});
         });
 
         // Share button.
-        document.getElementById('share').addEventListener('click', async function() {
-            await updateData({content: monacoEditor.getValue()});
-            navigator.clipboard.writeText(window.location.href);
-
-            const overlay = document.getElementById('share-overlay');
-            overlay.classList.add('show');
-
-            clearTimeout(shareOverlayTimeout);
-            shareOverlayTimeout = setTimeout(() => {
-                overlay.classList.remove('show');
-            }, 2000);
-        });
+        document.getElementById('share').addEventListener('click', share);
 
         // Download buttons.
         ['download-png', 'download-svg'].forEach(type => {
             document.getElementById(type).addEventListener('click', async function() {
-                await updateData({content: monacoEditor.getValue()});
+                await setData({content: monacoEditor.getValue()});
                 const svgElem = document.querySelector('#diagram-svg');
                 if (!svgElem) {
                     alert('No diagram to export.');
@@ -679,11 +687,19 @@ flowchart TB
             });
         });
 
-        // Auto-adjust editor font and line height.
-        new ResizeObserver(autoEditorFontSize).observe(document.getElementById("editor"));
+        // Auto-adjust editor font on resize.
+        new ResizeObserver(() => {
+            setEditorFontSize(localStorage.getItem("fontSizeOverride"))
+        }).observe(document.getElementById("editor"));
 
-        // On page load, initialize model from hash if present.
-        loadDataFromHashOrDefault();
+        // Set font sizes on other open editors.
+        window.addEventListener("storage", ev => {
+            if (ev.key == "fontSizeOverride") {
+                setEditorFontSize(ev.newValue);
+            }
+        });
+
+        setData(loadData());
 
         async function renderDiagram(code) {
             let element = document.querySelector('#diagram');
@@ -702,23 +718,34 @@ flowchart TB
                     enablePanZoom(svgElement);
                 }
             } catch (e) {
-                element.innerHTML = '<pre class="error">' + e + '</pre>';
+                element.innerHTML = '<pre id="diagram-error">' + e + '</pre>';
             }
         }
 
-        function lineHeightForFontSize(fontSize) {
-            return Math.floor(fontSize * 1.618);
-        }
+        const minFontSize = 9;
+        // The line height proportion is the golden ratio, which happened
+        // to produce a result that the author likes.
+        const lineHeightRatio = 1.618;
 
-        function autoEditorFontSize() {
-            if (!monacoEditor || fontSizeOverride) return;
+        // setEditorFontSize sets the font size and line height based on
+        // fontSize. Omit fontSize (or pass null) to enable automatic font
+        // sizes.
+        function setEditorFontSize(fontSize) {
+            if (!monacoEditor) return;
+
+            if (fontSize > 0) {
+                fontSize = Math.max(fontSize, minFontSize);
+                let lineHeight = Math.floor(fontSize * lineHeightRatio);
+                monacoEditor.updateOptions({fontSize, lineHeight});
+                return;
+            }
+
+            // If fontSize is not defined, set it automatically.
             const editor = document.getElementById("editor");
             // The number 55 was determined as being a decent match calculating
             // the font size based upon the preferences of the author.
-            // The line height proportion is the golden ratio, which happened
-            // to produce a result that the author liked as well.
-            let fontSize = Math.max(Math.floor(editor.offsetWidth / 55), 9);
-            let lineHeight = lineHeightForFontSize(fontSize);
+            fontSize = Math.max(Math.floor(editor.offsetWidth / 55), 9);
+            let lineHeight = Math.floor(fontSize * lineHeightRatio);
             monacoEditor.updateOptions({fontSize, lineHeight});
         }
 
@@ -803,6 +830,29 @@ flowchart TB
             });
         }
 
+        async function share() {
+            await setData({content: monacoEditor.getValue()});
+            let success = true;
+            try {
+                await navigator.clipboard.writeText(window.location.href);
+            } catch (err) {
+                console.error(err);
+                success = false;
+            }
+
+            const overlay = document.getElementById('share-overlay');
+            overlay.innerHTML = success ?
+                "Link copied to the clipboard" :
+                "Error copying link to the clipboard, please click on the page and try again.";
+            success ? overlay.classList.remove('error') : overlay.classList.add('error');
+            overlay.classList.add('show');
+
+            clearTimeout(shareOverlayTimeout);
+            shareOverlayTimeout = setTimeout(() => {
+                overlay.classList.remove('show');
+            }, 2000);
+        }
+
         function enablePanZoom(svg) {
             if (!svg) return;
             let isPanning = false;
@@ -883,7 +933,7 @@ flowchart TB
             if (scale === null) return;
             scale = parseFloat(scale);
             if (!scale || scale < 0 || scale > 100) scale = 1;
-            updateData({pngScale: scale});
+            setData({pngScale: scale});
 
             const clone = svgElem.cloneNode(true);
             clone.removeAttribute('width');
