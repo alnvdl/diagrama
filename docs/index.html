@@ -483,10 +483,17 @@ flowchart TB
             saveData(data);
         }
 
+        // loadAndSetData loads saved data and sets it. Useful when
+        // initializing the page or in callbacks for external data changes
+        // (e.g., hash, local storage).
+        function loadAndSetData() {
+            setData(loadData());
+        }
+
         function saveData(data) {
             // Remove the hashchange listener to avoid triggering another
             // update based on the change we are making here.
-            window.removeEventListener('hashchange', () => setData(loadData()));
+            window.removeEventListener('hashchange', loadAndSetData);
             try {
                 const json = JSON.stringify(data);
                 localStorage.setItem("data", json);
@@ -498,7 +505,7 @@ flowchart TB
                 // Only setup the hashchange listener after a timeout, to avoid
                 // triggering another update immediately.
                 setTimeout(() => {
-                    window.addEventListener('hashchange', () => setData(loadData()));
+                    window.addEventListener('hashchange', loadAndSetData);
                 }, 0);
             }
         }
@@ -699,7 +706,7 @@ flowchart TB
             }
         });
 
-        setData(loadData());
+        loadAndSetData();
 
         async function renderDiagram(code) {
             let element = document.querySelector('#diagram');
