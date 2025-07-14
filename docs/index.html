@@ -26,6 +26,8 @@
             --ui-editor-background-color: #1e1e1e;
             --ui-fast-transition: 150ms;
             --ui-slow-transition: 300ms;
+            --help-font-size: 0.9rem;
+            --help-font-weight: 300;
         }
 
         body {
@@ -263,6 +265,94 @@
             }
         }
 
+        .modal {
+            align-items: center;
+            background: rgba(0, 0, 0, 0.6);
+            bottom: 0;
+            display: none;
+            justify-content: center;
+            left: 0;
+            position: fixed;
+            right: 0;
+            top: 0;
+            z-index: 9999;
+        }
+
+        #help {
+            background: var(--ui-background-color);
+            border: 1px solid var(--ui-border-color);
+            font-size: var(--help-font-size);
+            font-weight: var(--help-font-weight);
+            max-height: 90dvh;
+            max-width: 720px;
+            overflow-y: auto;
+            padding: 1.5rem;
+            position: relative;
+            width: 90%;
+        }
+
+        #help .title {
+            margin: 0px;
+            font-weight: var(--help-font-weight);
+        }
+
+        #help p {
+            line-height: 1.5rem;
+            max-width: 40rem;
+        }
+
+        #close-help {
+            border: 1px solid var(--ui-border-color);
+            position: absolute;
+            right: 10px;
+            top: 10px;
+        }
+
+        #help table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1.5rem;
+        }
+
+        #help th {
+            text-align: left;
+            padding-bottom: 0.5rem;
+            font-weight: var(--ui-font-weight);
+        }
+
+        #help td {
+            padding: 0.15rem 0;
+            vertical-align: top;
+        }
+
+        #help td:first-child {
+            white-space: nowrap;
+            padding-right: 1rem;
+            width: 180px;
+            font-weight: var(--ui-font-weight);
+            padding-left: 16px;
+        }
+
+        kbd {
+            background-color: var(--ui-button-color);
+            border: 1px solid #b4b4b4;
+            box-shadow: 0 1px 1px rgb(0 0 0 / 0.2), 0 2px 0 0 rgb(255 255 255 / 0.7) inset;
+            color: var(--ui-font-color);
+            display: inline-block;
+            font-size: 0.7rem;
+            font-weight: 700;
+            line-height: 1;
+            padding: 2px 4px;
+            white-space: nowrap;
+            margin: 3px;
+        }
+
+        #help hr {
+            border: none;
+            border-bottom: 1px solid #ccc;
+            margin: 1.5rem 0rem;
+        }
+
         /* Touch-screen-only devices and small screens */
         @media only screen and (any-hover: none) and (pointer: coarse),
         only screen and (max-width: 1280px) {
@@ -279,11 +369,12 @@
 
             /* Header */
             #header {
-                padding: 0.25rem 0.5rem 0.25rem 0.5rem
+                padding: 0.25rem 0.5rem 0.25rem 0.5rem;
+                gap: 0.5rem;
             }
 
             #diagram-name {
-                font-size: 1.25rem;
+                font-size: 1.2rem;
             }
 
             .dg-button,
@@ -334,9 +425,156 @@
 
     <div id="share-overlay"></div>
 
+    <div id="help-modal" class="modal">
+        <div id="help">
+            <button class="dg-button" id="close-help">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-x"
+                    viewBox="0 0 16 16">
+                    <path
+                        d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708" />
+                </svg>
+            </button>
+            <h1 class="title">Diagrama</h1>
+            <p>Diagrama is a minimalistic web-based diagram editor.<br />
+                It runs entirely client-side: your diagram does not leave your browser.
+            </p>
+
+            <p>The <a href="https://mermaid.js.org/intro/" target="_blank">Mermaid syntax</a> is used to write diagram
+                code.</p>
+
+            <p>You can name your diagrams (click on the title in edit mode), export to SVG or PNG, share by
+                copying the URL or print using your browser.</p>
+
+            <p>Diagrama can be installed as a web app, and it works on small touch screens.</p>
+
+            <hr />
+
+            <table>
+                <thead>
+                    <tr>
+                        <th colspan="2">Main shortcuts</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><kbd>Ctrl</kbd>+<kbd>E</kbd></td>
+                        <td>show/hide the editor</td>
+                    </tr>
+                    <tr>
+                        <td><kbd>Ctrl</kbd>+<kbd>Enter</kbd></td>
+                        <td>update diagram based on the code</td>
+                    </tr>
+                    <tr>
+                        <td><kbd>Ctrl</kbd>+<kbd>P</kbd></td>
+                        <td>print diagram</td>
+                    </tr>
+                    <tr>
+                        <td><kbd>Ctrl</kbd>+<kbd>S</kbd></td>
+                        <td>copy diagram URL to the clipboard (share)</td>
+                    </tr>
+                    <tr>
+                        <td><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>R</kbd></td>
+                        <td>reset diagram code to the default template</td>
+                    </tr>
+                </tbody>
+            </table>
+            <table>
+                <thead>
+                    <tr>
+                        <th colspan="2">Editor shortcuts</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><kbd>Ctrl</kbd>+<kbd>F</kbd></td>
+                        <td>find-and-replace</td>
+                    </tr>
+                    <tr>
+                        <td><kbd>Ctrl</kbd> + click</td>
+                        <td>add cursors</td>
+                    </tr>
+                    <tr>
+                        <td><kbd>F2</kbd></td>
+                        <td>select all occurrences of the symbol under the cursor</td>
+                    </tr>
+                    <tr>
+                        <td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>K</kbd></td>
+                        <td>select next occurrence of the symbol under the cursor</td>
+                    </tr>
+                    <tr>
+                        <td><kbd>Ctrl</kbd>+<kbd>D</kbd></td>
+                        <td>delete line</td>
+                    </tr>
+                    <tr>
+                        <td><kbd>Ctrl</kbd>+<kbd>M</kbd></td>
+                        <td>go to matching brackets</td>
+                    </tr>
+                    <tr>
+                        <td><kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>Up</kbd></td>
+                        <td>add cursor to the line above</td>
+                    </tr>
+                    <tr>
+                        <td><kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>Down</kbd></td>
+                        <td>add cursor to the line below</td>
+                    </tr>
+                    <tr>
+                        <td><kbd>Ctrl</kbd> + scroll</td>
+                        <td>set the editor font size</td>
+                    </tr>
+                    <tr>
+                        <td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>0</kbd></td>
+                        <td>set automatic font size for the editor</td>
+                    </tr>
+                    <tr>
+                        <td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd></td>
+                        <td>see all available commands</td>
+                    </tr>
+                </tbody>
+            </table>
+            <table>
+                <thead>
+                    <tr>
+                        <th colspan="2">Diagram shortcuts</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Scroll</td>
+                        <td>zoom in/out of the diagram</td>
+                    </tr>
+                    <tr>
+                        <td>Click and move cursor</td>
+                        <td>pan the diagram</td>
+                    </tr>
+                </tbody>
+            </table>
+            <hr />
+
+            <p>The code is available on GitHub:
+                <a target="_blank"
+                    href="https://github.com/alnvdl/diagrama">https://github.com/alnvdl/diagrama</a><br />
+                Diagrama is built on top of the wonderful
+                <a href="https://microsoft.github.io/monaco-editor/" target="_blank">Monaco Editor</a> and
+                <a href="https://mermaid.js.org/" target="_blank">Mermaid</a> projects.<br />
+                The icons come from the <a href="https://icons.getbootstrap.com/" target="_blank">Boostrap Icons</a>
+                project.
+            </p>
+        </div>
+    </div>
+
     <div id="app-grid" class="view-mode">
         <div id="header">
             <input id="diagram-name" type="text" placeholder="Untitled diagram" />
+            <div class="dg-button-group">
+                <button class="dg-button fixed-width" id="open-help">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                        class="bi bi-question-circle" viewBox="0 0 16 16">
+                        <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16" />
+                        <path
+                            d="M5.255 5.786a.237.237 0 0 0 .241.247h.825c.138 0 .248-.113.266-.25.09-.656.54-1.134 1.342-1.134.686 0 1.314.343 1.314 1.168 0 .635-.374.927-.965 1.371-.673.489-1.206 1.06-1.168 1.987l.003.217a.25.25 0 0 0 .25.246h.811a.25.25 0 0 0 .25-.25v-.105c0-.718.273-.927 1.01-1.486.609-.463 1.244-.977 1.244-2.056 0-1.511-1.276-2.241-2.673-2.241-1.267 0-2.655.59-2.75 2.286m1.557 5.763c0 .533.425.927 1.01.927.609 0 1.028-.394 1.028-.927 0-.552-.42-.94-1.029-.94-.584 0-1.009.388-1.009.94" />
+                    </svg><span class="label collapse">Help</span>
+                </button>
+            </div>
             <div class="dg-button-group">
                 <div class="download-icon">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
@@ -358,14 +596,14 @@
                             d="M13.5 1a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3M11 2.5a2.5 2.5 0 1 1 .603 1.628l-6.718 3.12a2.5 2.5 0 0 1 0 1.504l6.718 3.12a2.5 2.5 0 1 1-.488.876l-6.718-3.12a2.5 2.5 0 1 1 0-3.256l6.718-3.12A2.5 2.5 0 0 1 11 2.5m-8.5 4a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3m11 5.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3" />
                     </svg><span class="label collapse">Share</span>
                 </button>
-                <button class="dg-button fixed-width" id="edit-mode">
+                <button class="dg-button fixed-width" id="set-mode-edit">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
                         class="bi bi-pencil button-icon" viewBox="0 0 16 16">
                         <path
                             d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325" />
                     </svg><span class="label collapse">Edit</span>
                 </button>
-                <button class="dg-button fixed-width" id="view-mode">
+                <button class="dg-button fixed-width" id="set-mode-view">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
                         class="bi bi-eye button-icon" viewBox="0 0 16 16">
                         <path
@@ -386,14 +624,14 @@
         import elkLayouts from './mermaid-elk/mermaid-layout-elk.esm.min.mjs';
         require.config({paths: {vs: 'monaco-editor/min/vs'}});
 
-        const defaultContent = `%% Diagrama is a minimalistic web-based diagram editor.
-%% The diagram you are seeing is described by the code below:
-
+        const defaultContent = `---
+config:
+  fontFamily: system-ui
+---
 flowchart TB
-    step1[Click <code>Edit</code><br/>to enter edit mode]
-    step2[Learn about the
-        <a href="https://mermaid.js.org/intro/"
-        target="_blank">Mermaid language</a>]
+    step1[Learn the <a href="https://mermaid.js.org/intro/" target="_blank">
+          Mermaid syntax</a>]
+    step2[Click <code>Edit</code><br/>to enter edit mode]
     step3[Modify the diagram code]
     step4[Press <code>Ctrl+Enter</code> to update the diagram]
     step5[Click <code>View</code><br/>to enter view mode]
@@ -407,24 +645,8 @@ flowchart TB
     step4 --> step5
     step5 --> step6
     step5 --> step8
-    step6 --> step7
+    step6 --> step7`;
 
-%% With Diagrama, you can also:
-%% * Install it as a web app.
-%% * Name your diagram when in edit mode.
-%% * Pan and zoom the diagram with the mouse.
-%% * Define a custom scale when exporting the diagram as a PNG.
-%% * Print the diagram using your browser's print functionality.
-%% * Use features available in VSCode, like find-and-replace (Ctrl+F),
-%%   multiple cursors (hold Ctrl), select occurences of the word under
-%%   the cursor (F2), delete lines (Ctrl+D), go to matching brackets
-%%   (Ctrl+M) and set the font size (hold Ctrl and scroll).
-%%   The command palette shows all available commands (Ctrl+Shift+P).
-
-%% Diagrama runs entirely client-side: no data leaves your browser.
-%% The code is available at: https://github.com/alnvdl/diagrama
-%% Diagrama is built on top of the wonderful Monaco Editor and Mermaid
-%% projects. All icons are from the Boostrap Icons project.`;
         const defaultData = {
             content: defaultContent.trim(),
             name: 'Welcome to Diagrama',
@@ -532,8 +754,8 @@ flowchart TB
             }
 
             // Hide the view/edit buttons based on the mode.
-            const editButton = document.getElementById('edit-mode');
-            const viewButton = document.getElementById('view-mode');
+            const editButton = document.getElementById('set-mode-edit');
+            const viewButton = document.getElementById('set-mode-view');
             if (editButton && viewButton) {
                 if (mode === 'edit') {
                     editButton.classList.add('hidden');
@@ -621,6 +843,7 @@ flowchart TB
                 command: 'editor.action.insertCursorBelow',
                 when: null,
             }]);
+
             // Update data on Ctrl+Enter.
             monacoEditor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, function() {
                 setData({content: monacoEditor.getValue()}, true);
@@ -665,18 +888,40 @@ flowchart TB
                 e.preventDefault();
                 setData(defaultData);
             }
+
+            if (e.key === '?') {
+                if (data.mode === "edit" &&
+                    (monacoEditor.hasTextFocus() ||
+                        document.activeElement == document.getElementById('diagram-name'))) {
+                    return
+                };
+                help();
+            }
+
+            // Hide any modals when Escape is pressed.
+            if (e.key === 'Escape') {
+                document.querySelector('.modal').style.display = 'none';
+            }
         });
 
-        // Swap between edit and view modes.
-        document.getElementById('edit-mode').addEventListener('click', function() {
+        // Mode buttons.
+        document.getElementById('set-mode-edit').addEventListener('click', function() {
             setData({mode: 'edit'});
         });
-        document.getElementById('view-mode').addEventListener('click', function() {
+        document.getElementById('set-mode-view').addEventListener('click', function() {
             setData({mode: 'view', content: monacoEditor.getValue()});
         });
 
         // Share button.
         document.getElementById('share').addEventListener('click', share);
+
+        // Open help button.
+        document.getElementById('open-help').addEventListener('click', help);
+
+        // Close help button.
+        document.getElementById('close-help').addEventListener('click', () => {
+            document.getElementById('help-modal').style.display = 'none';
+        });
 
         // Download buttons.
         ['download-png', 'download-svg'].forEach(type => {
@@ -858,6 +1103,11 @@ flowchart TB
             shareOverlayTimeout = setTimeout(() => {
                 overlay.classList.remove('show');
             }, 2000);
+        }
+
+        function help() {
+            let modal = document.getElementById('help-modal');
+            modal.style.display = modal.style.display === 'flex' ? 'none' : 'flex';
         }
 
         function enablePanZoom(svg) {
