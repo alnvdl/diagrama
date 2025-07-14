@@ -263,8 +263,13 @@
             #editor {
                 display: none !important;
             }
+
+            .modal {
+                display: none !important;
+            }
         }
 
+        /* Help */
         .modal {
             align-items: center;
             background: rgba(0, 0, 0, 0.6);
@@ -292,8 +297,13 @@
         }
 
         #help .title {
-            margin: 0px;
             font-weight: var(--help-font-weight);
+            margin: 0px;
+        }
+
+        #help a {
+            color: var(--ui-font-color);
+            font-weight: var(--ui-font-weight);
         }
 
         #help p {
@@ -309,15 +319,15 @@
         }
 
         #help table {
-            width: 100%;
             border-collapse: collapse;
             margin-bottom: 1.5rem;
+            width: 100%;
         }
 
         #help th {
-            text-align: left;
-            padding-bottom: 0.5rem;
             font-weight: var(--ui-font-weight);
+            padding-bottom: 0.5rem;
+            text-align: left;
         }
 
         #help td {
@@ -326,11 +336,17 @@
         }
 
         #help td:first-child {
-            white-space: nowrap;
-            padding-right: 1rem;
-            width: 180px;
             font-weight: var(--ui-font-weight);
             padding-left: 16px;
+            padding-right: 1rem;
+            white-space: nowrap;
+            width: 180px;
+        }
+
+        #help hr {
+            border-bottom: 1px solid #ccc;
+            border: none;
+            margin: 1.5rem 0rem;
         }
 
         kbd {
@@ -342,15 +358,9 @@
             font-size: 0.7rem;
             font-weight: 700;
             line-height: 1;
+            margin: 3px;
             padding: 2px 4px;
             white-space: nowrap;
-            margin: 3px;
-        }
-
-        #help hr {
-            border: none;
-            border-bottom: 1px solid #ccc;
-            margin: 1.5rem 0rem;
         }
 
         /* Touch-screen-only devices and small screens */
@@ -452,7 +462,7 @@
             <table>
                 <thead>
                     <tr>
-                        <th colspan="2">Main shortcuts</th>
+                        <th colspan="2">App shortcuts</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -502,20 +512,20 @@
                         <td>select next occurrence of the symbol under the cursor</td>
                     </tr>
                     <tr>
-                        <td><kbd>Ctrl</kbd>+<kbd>D</kbd></td>
-                        <td>delete line</td>
-                    </tr>
-                    <tr>
-                        <td><kbd>Ctrl</kbd>+<kbd>M</kbd></td>
-                        <td>go to matching brackets</td>
-                    </tr>
-                    <tr>
                         <td><kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>Up</kbd></td>
                         <td>add cursor to the line above</td>
                     </tr>
                     <tr>
                         <td><kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>Down</kbd></td>
                         <td>add cursor to the line below</td>
+                    </tr>
+                    <tr>
+                        <td><kbd>Ctrl</kbd>+<kbd>D</kbd></td>
+                        <td>delete line</td>
+                    </tr>
+                    <tr>
+                        <td><kbd>Ctrl</kbd>+<kbd>M</kbd></td>
+                        <td>go to matching brackets</td>
                     </tr>
                     <tr>
                         <td><kbd>Ctrl</kbd> + scroll</td>
@@ -526,7 +536,7 @@
                         <td>set automatic font size for the editor</td>
                     </tr>
                     <tr>
-                        <td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd></td>
+                        <td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> or <kbd>F1</kbd></td>
                         <td>see all available commands</td>
                     </tr>
                 </tbody>
@@ -534,13 +544,13 @@
             <table>
                 <thead>
                     <tr>
-                        <th colspan="2">Diagram shortcuts</th>
+                        <th colspan="2">Diagram</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr>
                         <td>Scroll</td>
-                        <td>zoom in/out of the diagram</td>
+                        <td>zoom in/out the diagram</td>
                     </tr>
                     <tr>
                         <td>Click and move cursor</td>
@@ -629,13 +639,13 @@ config:
   fontFamily: system-ui
 ---
 flowchart TB
-    step1[Learn the <a href="https://mermaid.js.org/intro/" target="_blank">
-          Mermaid syntax</a>]
+    step1[Learn the <a href="https://mermaid.js.org/intro/"
+          target="_blank">Mermaid syntax</a>]
     step2[Click <code>Edit</code><br/>to enter edit mode]
     step3[Modify the diagram code]
     step4[Press <code>Ctrl+Enter</code> to update the diagram]
     step5[Click <code>View</code><br/>to enter view mode]
-    step6[Click <code>Share</code><br/>to get a link to your diagram]
+    step6[Click <code>Share</code><br/>to get a link to the diagram]
     step7[Bookmark or save the link to edit again later]
     step8[Export the diagram as SVG or PNG]
 
@@ -744,6 +754,7 @@ flowchart TB
                     diagramNameElem.readOnly = false;
                     diagramNameElem.classList.remove('no-caret');
                 }
+                monacoEditor.focus();
             } else if (mode === 'view') {
                 appGrid.classList.replace('edit-mode', 'view-mode');
                 editor.classList.add('hidden');
@@ -886,7 +897,7 @@ flowchart TB
             // Reset the diagram with Ctrl+Alt+R.
             if ((e.ctrlKey || e.metaKey) && e.altKey && e.key.toLowerCase() === 'r') {
                 e.preventDefault();
-                setData(defaultData);
+                resetData();
             }
 
             if (e.key === '?') {
@@ -895,12 +906,13 @@ flowchart TB
                         document.activeElement == document.getElementById('diagram-name'))) {
                     return
                 };
-                help();
+                showHelp();
             }
 
             // Hide any modals when Escape is pressed.
             if (e.key === 'Escape') {
-                document.querySelector('.modal').style.display = 'none';
+                e.preventDefault();
+                closeHelp();
             }
         });
 
@@ -916,12 +928,10 @@ flowchart TB
         document.getElementById('share').addEventListener('click', share);
 
         // Open help button.
-        document.getElementById('open-help').addEventListener('click', help);
+        document.getElementById('open-help').addEventListener('click', showHelp);
 
         // Close help button.
-        document.getElementById('close-help').addEventListener('click', () => {
-            document.getElementById('help-modal').style.display = 'none';
-        });
+        document.getElementById('close-help').addEventListener('click', closeHelp);
 
         // Download buttons.
         ['download-png', 'download-svg'].forEach(type => {
@@ -1083,7 +1093,8 @@ flowchart TB
         }
 
         async function share() {
-            await setData({content: monacoEditor.getValue()});
+            closeHelp();
+            await setData({content: monacoEditor.getValue(), mode: "view"});
             let success = true;
             try {
                 await navigator.clipboard.writeText(window.location.href);
@@ -1105,9 +1116,18 @@ flowchart TB
             }, 2000);
         }
 
-        function help() {
+        function resetData() {
+            closeHelp();
+            setData(defaultData);
+        }
+
+        function showHelp() {
             let modal = document.getElementById('help-modal');
             modal.style.display = modal.style.display === 'flex' ? 'none' : 'flex';
+        }
+
+        function closeHelp() {
+            document.getElementById('help-modal').style.display = 'none';
         }
 
         function enablePanZoom(svg) {
