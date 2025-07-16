@@ -191,7 +191,7 @@
             padding: 0 0.5rem;
         }
 
-        #share-overlay {
+        #notification-overlay {
             background: var(--ui-font-color);
             color: var(--ui-background-color);
             font-size: var(--ui-font-size);
@@ -208,11 +208,11 @@
             max-width: 15rem;
         }
 
-        #share-overlay.error {
+        #notification-overlay.error {
             background-color: var(--ui-error-color);
         }
 
-        #share-overlay.show {
+        #notification-overlay.show {
             opacity: 1;
         }
 
@@ -407,7 +407,7 @@
                 display: none !important;
             }
 
-            #share-overlay {
+            #notification-overlay {
                 right: 0.5rem;
                 top: 3rem;
             }
@@ -433,7 +433,7 @@
         </div>
     </div>
 
-    <div id="share-overlay"></div>
+    <div id="notification-overlay"></div>
 
     <div id="help-modal" class="modal">
         <div id="help">
@@ -452,7 +452,8 @@
             <p>The <a href="https://mermaid.js.org/intro/" target="_blank">Mermaid syntax</a> is used to write diagram
                 code.</p>
 
-            <p>You can name your diagrams (click on the title in edit mode), export to SVG or PNG, share by
+            <p>You can name your diagrams (click on the title in edit mode), export to SVG or PNG
+                (right-click on the button to copy to the clipboard instead of saving), share by
                 copying the URL or print using your browser.</p>
 
             <p>Diagrama can be installed as a web app, and it works on small touch screens.</p>
@@ -664,7 +665,7 @@ flowchart TB
             mode: 'view',
         };
         let data = null;
-        let shareOverlayTimeout;
+        let notificationOverlayTimeout;
 
         // loadData tries to load diagram data in the following order until one
         // attempt succeeds: base64-encoded JSON in URL hash, JSON in local
@@ -754,7 +755,7 @@ flowchart TB
                     diagramNameElem.readOnly = false;
                     diagramNameElem.classList.remove('no-caret');
                 }
-                monacoEditor.focus();
+                if (monacoEditor) monacoEditor.focus();
             } else if (mode === 'view') {
                 appGrid.classList.replace('edit-mode', 'view-mode');
                 editor.classList.add('hidden');
@@ -935,7 +936,10 @@ flowchart TB
 
         // Download buttons.
         ['download-png', 'download-svg'].forEach(type => {
-            document.getElementById(type).addEventListener('click', async function() {
+            document.getElementById(type).addEventListener('contextmenu', function(event) {
+                event.preventDefault();
+            });
+            document.getElementById(type).addEventListener('mousedown', async function(ev) {
                 await setData({content: monacoEditor.getValue()});
                 const svgElem = document.querySelector('#diagram-svg');
                 if (!svgElem) {
@@ -945,7 +949,7 @@ flowchart TB
                 let name = document.getElementById('diagram-name').value.trim() || 'Diagrama';
                 const ext = type === 'download-png' ? '.png' : '.svg';
                 if (!name.toLowerCase().endsWith(ext)) name += ext;
-                (type === 'download-png' ? pngDownload : svgDownload)(svgElem, name);
+                (type === 'download-png' ? pngDownload : svgDownload)(svgElem, name, ev.button === 2);
             });
         });
 
@@ -1009,6 +1013,18 @@ flowchart TB
             fontSize = Math.max(Math.floor(editor.offsetWidth / 55), 9);
             let lineHeight = Math.floor(fontSize * lineHeightRatio);
             monacoEditor.updateOptions({fontSize, lineHeight});
+        }
+
+        async function showNotification(msg, ok) {
+            const overlay = document.getElementById('notification-overlay');
+            overlay.innerHTML = msg;
+            ok ? overlay.classList.remove('error') : overlay.classList.add('error');
+            overlay.classList.add('show');
+
+            clearTimeout(notificationOverlayTimeout);
+            notificationOverlayTimeout = setTimeout(() => {
+                overlay.classList.remove('show');
+            }, 2000);
         }
 
         function initLang(monacoEditor) {
@@ -1095,25 +1111,17 @@ flowchart TB
         async function share() {
             closeHelp();
             await setData({content: monacoEditor.getValue(), mode: "view"});
-            let success = true;
+            let ok = true;
             try {
                 await navigator.clipboard.writeText(window.location.href);
             } catch (err) {
                 console.error(err);
-                success = false;
+                ok = false;
             }
-
-            const overlay = document.getElementById('share-overlay');
-            overlay.innerHTML = success ?
+            let msg = ok ?
                 "Link copied to the clipboard" :
                 "Error copying link to the clipboard, please click on the page and try again.";
-            success ? overlay.classList.remove('error') : overlay.classList.add('error');
-            overlay.classList.add('show');
-
-            clearTimeout(shareOverlayTimeout);
-            shareOverlayTimeout = setTimeout(() => {
-                overlay.classList.remove('show');
-            }, 2000);
+            showNotification(msg, ok);
         }
 
         function resetData() {
@@ -1202,7 +1210,7 @@ flowchart TB
             }, {passive: false});
         }
 
-        function pngDownload(svgElem, fileName) {
+        function pngDownload(svgElem, fileName, clipboard) {
             let scale = window.prompt(
                 'Enter the scale of the exported diagram (a number between 1 and 100):',
                 data.pngScale
@@ -1243,16 +1251,32 @@ flowchart TB
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 ctx.setTransform(scale, 0, 0, scale, 0, 0);
                 ctx.drawImage(img, 0, 0);
-                canvas.toBlob(function(blob) {
-                    const a = document.createElement('a');
-                    a.href = URL.createObjectURL(blob);
-                    a.download = fileName;
-                    document.body.appendChild(a);
-                    a.click();
-                    setTimeout(() => {
-                        document.body.removeChild(a);
-                        URL.revokeObjectURL(a.href);
-                    }, 100);
+                canvas.toBlob(async function(blob) {
+                    if (clipboard) {
+                        let ok = true;
+                        try {
+                            await navigator.clipboard.write([
+                                new ClipboardItem({'image/png': blob})
+                            ]);
+                        } catch (e) {
+                            console.error(err);
+                            ok = false;
+                        }
+                        let msg = ok ?
+                            "PNG image copied to the clipboard" :
+                            "Error copying PNG iage to the clipboard, please click on the page and try again.";
+                        showNotification(msg, ok);
+                    } else {
+                        const a = document.createElement('a');
+                        a.href = URL.createObjectURL(blob);
+                        a.download = fileName;
+                        document.body.appendChild(a);
+                        a.click();
+                        setTimeout(() => {
+                            document.body.removeChild(a);
+                            URL.revokeObjectURL(a.href);
+                        }, 100);
+                    }
                 }, 'image/png');
             };
 
@@ -1263,7 +1287,11 @@ flowchart TB
             img.src = 'data:image/svg+xml;base64,' + encodedData;
         }
 
-        function svgDownload(svgElem, fileName) {
+        function svgDownload(svgElem, fileName, clipboard) {
+            if (clipboard) {
+                showNotification("Copying SVG to clipboard is not supported", false);
+                return;
+            }
             // Clone SVG to avoid touching the DOM.
             const clone = svgElem.cloneNode(true);
             const svgData = new XMLSerializer().serializeToString(clone);
