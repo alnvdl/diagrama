@@ -1,3 +1,8 @@
+// This server is meant to be used only for local development. It is a
+// convenient way to run Diagrama during development, as it cannot be loaded
+// from the filesystem (because of the use of ESM modules). Do not use this in
+// production.
+
 const http = require('http');
 const fs = require('fs');
 const path = require('path');

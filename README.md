@@ -6,8 +6,8 @@ To use the hosted version, go to: https://alnvdl.github.io/diagrama/
 
 To run it in development mode, you can use the following commands:
 ```bash
-$ node run dist   # Updates the Monaco Editor and Mermaid dependencies.
-$ node run server # Runs a local server to serve the static files.
+$ node run dist      # Updates the Monaco Editor and Mermaid dependencies.
+$ node run devserver # Runs a local server to serve the static files.
 ```
 
 ## Why?
