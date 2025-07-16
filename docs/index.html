@@ -1216,9 +1216,17 @@ flowchart TB
             clone.removeAttribute('width');
             clone.removeAttribute('height');
             const bbox = svgElem.getBBox();
-            clone.setAttribute('viewBox', `${bbox.x} ${bbox.y} ${bbox.width} ${bbox.height}`);
-            clone.setAttribute('width', bbox.width);
-            clone.setAttribute('height', bbox.height);
+            // A bit of margin to prevent the diagram from touching the limits
+            // of the image.
+            const margin = 2;
+            const viewBoxX = Math.floor(bbox.x - margin);
+            const viewBoxY = Math.floor(bbox.y - margin);
+            const viewBoxWidth = Math.ceil(bbox.width + 2 * margin);
+            const viewBoxHeight = Math.ceil(bbox.height + 2 * margin);
+
+            clone.setAttribute('viewBox', `${viewBoxX} ${viewBoxY} ${viewBoxWidth} ${viewBoxHeight}`);
+            clone.setAttribute('width', viewBoxWidth);
+            clone.setAttribute('height', viewBoxHeight);
 
             // Serializing to base64 avoids tainting the canvas if there are
             // links or images embedded in the diagram.
@@ -1229,8 +1237,8 @@ flowchart TB
             const img = new window.Image();
             img.onload = function() {
                 const canvas = document.createElement('canvas');
-                canvas.width = bbox.width * scale;
-                canvas.height = bbox.height * scale;
+                canvas.width = viewBoxWidth * scale;
+                canvas.height = viewBoxHeight * scale;
                 const ctx = canvas.getContext('2d');
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 ctx.setTransform(scale, 0, 0, scale, 0, 0);
