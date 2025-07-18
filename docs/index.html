@@ -755,7 +755,9 @@ flowchart TB
                     diagramNameElem.readOnly = false;
                     diagramNameElem.classList.remove('no-caret');
                 }
-                if (monacoEditor) monacoEditor.focus();
+                if (monacoEditor && document.activeElement != diagramNameElem) {
+                    monacoEditor.focus()
+                };
             } else if (mode === 'view') {
                 appGrid.classList.replace('edit-mode', 'view-mode');
                 editor.classList.add('hidden');
