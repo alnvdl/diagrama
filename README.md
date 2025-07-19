@@ -32,3 +32,9 @@ long term:
 
 The `docs` folder is used to serve static files because that is easier to host
 with GitHub Pages.
+
+## Licenses
+This project is licensed under the MIT license, as are the embedded Monaco
+Editor and Mermaid projects.
+
+The Material Symbols icons are under the Apache 2.0 license.

@@ -8,10 +8,11 @@
 
     <link rel="manifest" href="manifest.json" />
     <link rel="icon" href="./icon16.png" sizes="16x16" type="image/png">
-    <link rel="icon" href="./icon32.png" sizes="32x32" type="image/png">
+    <link rel="icon" href="./icon48.png" sizes="48x48" type="image/png">
     <link rel="icon" href="./icon180.png" sizes="180x180" type="image/png">
     <link rel="apple-touch-icon" href="./icon180.png" sizes="180x180" type="image/png">
     <link rel="icon" href="./icon.svg" sizes="any" type="image/svg+xml">
+    <link rel="stylesheet" href="./material-symbols/font.css">
 
     <style>
         :root {
@@ -114,12 +115,13 @@
 
         /* Header */
         #header {
+            align-items: center;
             border-bottom: 1px solid var(--ui-border-color);
             display: flex;
             gap: 1rem;
             grid-area: header;
             min-height: 0;
-            padding: 0.75rem 1.5rem 0.75rem 1.5rem;
+            padding: 1rem;
         }
 
         #diagram-name {
@@ -170,14 +172,17 @@
             background-color: var(--ui-button-hover-color);
         }
 
-        .dg-button-icon {
-            display: inline-block;
-            vertical-align: middle;
+        .dg-button .material-symbols-rounded,
+        .dg-button-group .material-symbols-rounded {
+            font-size: 20px;
         }
 
         .dg-button-group {
             border: 1px solid var(--ui-border-color);
+            box-sizing: border-box;
             display: inline-flex;
+            height: 32px;
+            min-height: 32px;
         }
 
         .dg-button-group .dg-button:not(:first-child) {
@@ -252,6 +257,12 @@
             white-space: pre-wrap;
         }
 
+        /* This style is replicated in insertIconsStylesheet, make sure to
+        update it in both places */
+        #diagram-svg .material-symbols-rounded {
+            vertical-align: text-bottom;
+        }
+
         /* Print */
         @media print {
             #app-grid.edit-mode {
@@ -313,9 +324,11 @@
 
         #close-help {
             border: 1px solid var(--ui-border-color);
+            height: 32px;
             position: absolute;
             right: 10px;
             top: 10px;
+            width: 32px;
         }
 
         #help table {
@@ -344,9 +357,18 @@
         }
 
         #help hr {
-            border-bottom: 1px solid #ccc;
+            border-bottom: 1px solid #ccc !important;
             border: none;
             margin: 1.5rem 0rem;
+        }
+
+        #help ul {
+            list-style-type: none;
+            padding-left: 1.5rem;
+        }
+
+        #help ul li {
+            margin-bottom: 1rem;
         }
 
         kbd {
@@ -379,7 +401,7 @@
 
             /* Header */
             #header {
-                padding: 0.25rem 0.5rem 0.25rem 0.5rem;
+                padding: 0.5rem;
                 gap: 0.5rem;
             }
 
@@ -390,12 +412,7 @@
             .dg-button,
             .dg-button.fixed-width,
             .download-icon {
-                width: 2.25rem;
-                height: 2.25rem;
-            }
-
-            .dg-button-group {
-                max-height: 2.25rem;
+                width: 32px;
             }
 
             .download-icon {
@@ -438,11 +455,7 @@
     <div id="help-modal" class="modal">
         <div id="help">
             <button class="dg-button" id="close-help">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-x"
-                    viewBox="0 0 16 16">
-                    <path
-                        d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708" />
-                </svg>
+                <span class="material-symbols-rounded">close</span>
             </button>
             <h1 class="title">Diagrama</h1>
             <p>Diagrama is a minimalistic web-based diagram editor.<br />
@@ -450,11 +463,21 @@
             </p>
 
             <p>The <a href="https://mermaid.js.org/intro/" target="_blank">Mermaid syntax</a> is used to write diagram
-                code.</p>
-
-            <p>You can name your diagrams (click on the title in edit mode), export to SVG or PNG
-                (right-click on the button to copy to the clipboard instead of saving), share by
-                copying the URL or print using your browser.</p>
+                code, and you can:
+            </p>
+            <ul>
+                <li>Name your diagrams by clicking on the title in edit mode</li>
+                <li>Export to SVG or PNG<br />
+                    <small>(Right-click on the button to copy to the clipboard instead of
+                        saving)</small>
+                </li>
+                <li>Include icons with syntax <code>!!graph_2!!</code><br />
+                    <small>(See <a href="https://fonts.google.com/icons?icon.style=Rounded" target="_blank">the list of available
+                            icons</a>; click on icons and find the "Icon name")</small>
+                </li>
+                <li>Share by copying the URL</li>
+                <li>Print using your browser</li>
+            </ul>
 
             <p>Diagrama can be installed as a web app, and it works on small touch screens.</p>
 
@@ -567,7 +590,7 @@
                 Diagrama is built on top of the wonderful
                 <a href="https://microsoft.github.io/monaco-editor/" target="_blank">Monaco Editor</a> and
                 <a href="https://mermaid.js.org/" target="_blank">Mermaid</a> projects.<br />
-                The icons come from the <a href="https://icons.getbootstrap.com/" target="_blank">Boostrap Icons</a>
+                The icons come from the <a href="https://github.com/google/material-design-icons" target="_blank">Material Symbols & Icons</a>
                 project.
             </p>
         </div>
@@ -578,50 +601,29 @@
             <input id="diagram-name" type="text" placeholder="Untitled diagram" />
             <div class="dg-button-group">
                 <button class="dg-button fixed-width" id="open-help">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
-                        class="bi bi-question-circle" viewBox="0 0 16 16">
-                        <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16" />
-                        <path
-                            d="M5.255 5.786a.237.237 0 0 0 .241.247h.825c.138 0 .248-.113.266-.25.09-.656.54-1.134 1.342-1.134.686 0 1.314.343 1.314 1.168 0 .635-.374.927-.965 1.371-.673.489-1.206 1.06-1.168 1.987l.003.217a.25.25 0 0 0 .25.246h.811a.25.25 0 0 0 .25-.25v-.105c0-.718.273-.927 1.01-1.486.609-.463 1.244-.977 1.244-2.056 0-1.511-1.276-2.241-2.673-2.241-1.267 0-2.655.59-2.75 2.286m1.557 5.763c0 .533.425.927 1.01.927.609 0 1.028-.394 1.028-.927 0-.552-.42-.94-1.029-.94-.584 0-1.009.388-1.009.94" />
-                    </svg><span class="label collapse">Help</span>
+                    <span class="material-symbols-rounded">help</span>
+                    <span class="label collapse">Help</span>
                 </button>
             </div>
             <div class="dg-button-group">
                 <div class="download-icon">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
-                        class="bi bi-download button-icon" viewBox="0 0 16 16">
-                        <path
-                            d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5" />
-                        <path
-                            d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708z" />
-                    </svg>
+                    <span class="material-symbols-rounded">download</span>
                 </div>
                 <button class="dg-button" id="download-svg"><span class="label">SVG</span></button>
                 <button class="dg-button" id="download-png"><span class="label">PNG</span></button>
             </div>
             <div class="dg-button-group">
                 <button class="dg-button fixed-width" id="share">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
-                        class="bi bi-share" viewBox="0 0 16 16">
-                        <path
-                            d="M13.5 1a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3M11 2.5a2.5 2.5 0 1 1 .603 1.628l-6.718 3.12a2.5 2.5 0 0 1 0 1.504l6.718 3.12a2.5 2.5 0 1 1-.488.876l-6.718-3.12a2.5 2.5 0 1 1 0-3.256l6.718-3.12A2.5 2.5 0 0 1 11 2.5m-8.5 4a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3m11 5.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3" />
-                    </svg><span class="label collapse">Share</span>
+                    <span class="material-symbols-rounded">share</span>
+                    <span class="label collapse">Share</span>
                 </button>
                 <button class="dg-button fixed-width" id="set-mode-edit">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
-                        class="bi bi-pencil button-icon" viewBox="0 0 16 16">
-                        <path
-                            d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325" />
-                    </svg><span class="label collapse">Edit</span>
+                    <span class="material-symbols-rounded">edit</span>
+                    <span class="label collapse">Edit</span>
                 </button>
                 <button class="dg-button fixed-width" id="set-mode-view">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
-                        class="bi bi-eye button-icon" viewBox="0 0 16 16">
-                        <path
-                            d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8M1.173 8a13 13 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5s3.879 1.168 5.168 2.457A13 13 0 0 1 14.828 8q-.086.13-.195.288c-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5s-3.879-1.168-5.168-2.457A13 13 0 0 1 1.172 8z" />
-                        <path
-                            d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5M4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0" />
-                    </svg><span class="label collapse">View</span>
+                    <span class="material-symbols-rounded">visibility</span>
+                    <span class="label collapse">View</span>
                 </button>
             </div>
         </div>
@@ -642,11 +644,11 @@ config:
 flowchart TB
     step1[Learn the <a href="https://mermaid.js.org/intro/"
           target="_blank">Mermaid syntax</a>]
-    step2[Click <code>Edit</code><br/>to enter edit mode]
+    step2[Click !!edit!! Edit<br/>to enter edit mode]
     step3[Modify the diagram code]
-    step4[Press <code>Ctrl+Enter</code> to update the diagram]
-    step5[Click <code>View</code><br/>to enter view mode]
-    step6[Click <code>Share</code><br/>to get a link to the diagram]
+    step4[Press <kbd>Ctrl</kbd>+<kbd>Enter</kbd> to update the diagram]
+    step5[Click !!visibility!! View<br/>to enter view mode]
+    step6[Click !!share!! Share<br/>to get a link to the diagram]
     step7[Bookmark or save the link to edit again later]
     step8[Export the diagram as SVG or PNG]
 
@@ -657,7 +659,6 @@ flowchart TB
     step5 --> step6
     step5 --> step8
     step6 --> step7`;
-
         const defaultData = {
             content: defaultContent.trim(),
             name: 'Welcome to Diagrama',
@@ -665,6 +666,20 @@ flowchart TB
             mode: 'view',
         };
         let data = null;
+
+        // Icons can be included with !!icon-name!!, and we translate them
+        // right before rendering.
+        const iconRegex = /!!([a-z0-9-_]+)!!/i;
+        const iconsStylesheet = "./material-symbols/font.css";
+        function hasIconDirectives(content) {
+            return iconRegex.test(content);
+        }
+        function withIconElements(content) {
+            return content.replace(
+                new RegExp(iconRegex.source, 'gi'),
+                (_, value) => `<span class="material-symbols-rounded">${value}</span>`);
+        }
+
         let notificationOverlayTimeout;
 
         // loadData tries to load diagram data in the following order until one
@@ -703,7 +718,7 @@ flowchart TB
             // If the content has changed, re-render the diagram and update the
             // editor.
             if (forceRender || !oldData || oldData.content != data.content) {
-                await renderDiagram(data.content);
+                await renderDiagram(withIconElements(data.content));
 
                 if (monacoEditor && monacoEditor.getValue() !== data.content) {
                     const pos = monacoEditor.getPosition();
@@ -1212,7 +1227,7 @@ flowchart TB
             }, {passive: false});
         }
 
-        function pngDownload(svgElem, fileName, clipboard) {
+        async function pngDownload(svgElem, fileName, clipboard) {
             let scale = window.prompt(
                 'Enter the scale of the exported diagram (a number between 1 and 100):',
                 data.pngScale
@@ -1223,6 +1238,7 @@ flowchart TB
             setData({pngScale: scale});
 
             const clone = svgElem.cloneNode(true);
+            await insertIconsStylesheet(iconsStylesheet, clone);
             clone.removeAttribute('width');
             clone.removeAttribute('height');
             const bbox = svgElem.getBBox();
@@ -1289,13 +1305,15 @@ flowchart TB
             img.src = 'data:image/svg+xml;base64,' + encodedData;
         }
 
-        function svgDownload(svgElem, fileName, clipboard) {
+        async function svgDownload(svgElem, fileName, clipboard) {
             if (clipboard) {
                 showNotification("Copying SVG to the clipboard is not supported", false);
                 return;
             }
             // Clone SVG to avoid touching the DOM.
             const clone = svgElem.cloneNode(true);
+            await insertIconsStylesheet(iconsStylesheet, clone);
+
             const svgData = new XMLSerializer().serializeToString(clone);
             const blob = new Blob([svgData], {type: 'image/svg+xml;charset=utf-8'});
             const a = document.createElement('a');
@@ -1308,6 +1326,23 @@ flowchart TB
                 URL.revokeObjectURL(a.href);
             }, 100);
         }
+
+        // insertIconsStylesheet inserts the icons stylesheet given by url into
+        // the given svg, but only if data.content is deemed to have icons.
+        async function insertIconsStylesheet(url, svg) {
+            if (!hasIconDirectives(data.content)) return;
+            const absoluteURL = new URL(url, window.location.href).href;
+            let cssText = await fetch(url).then(res => res.text());
+            cssText += `
+            #diagram-svg .material-symbols-rounded {
+                vertical-align: text-bottom;
+            }\n`;
+
+            const style = document.createElementNS("http://www.w3.org/2000/svg", "style");
+            style.textContent = cssText;
+            svg.insertBefore(style, svg.firstChild);
+        }
+
     </script>
 
     <script>
