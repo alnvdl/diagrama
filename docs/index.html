@@ -17,6 +17,7 @@
     <style>
         :root {
             --ui-font-size: 0.85rem;
+            --mobile-ui-font-size: 0.7rem;
             --ui-font-weight: 500;
             --ui-font-color: #222;
             --ui-error-color: #dc3545;
@@ -257,28 +258,17 @@
             white-space: pre-wrap;
         }
 
-        /* This style is replicated in insertIconsStylesheet, make sure to
+        /* These styles are exported in insertIconsStylesheet, make sure to
         update it in both places */
+        #diagram-svg a {
+            color: inherit;
+        }
+
         #diagram-svg .material-symbols-rounded {
             vertical-align: text-bottom;
         }
 
-        /* Print */
-        @media print {
-            #app-grid.edit-mode {
-                grid-template-columns: 0dvw 100dvw;
-            }
-
-            .dg-button,
-            .dg-button-group,
-            #editor {
-                display: none !important;
-            }
-
-            .modal {
-                display: none !important;
-            }
-        }
+        /* End of exported diagram styles. */
 
         /* Help */
         .modal {
@@ -413,6 +403,7 @@
             .dg-button.fixed-width,
             .download-icon {
                 width: 32px;
+                font-size: var(--mobile-ui-font-size);
             }
 
             .download-icon {
@@ -437,6 +428,23 @@
             /* Diagram */
             #diagram {
                 padding: 0;
+            }
+        }
+
+        /* Print */
+        @media print {
+            #app-grid.edit-mode {
+                grid-template-columns: 0dvw 100dvw;
+            }
+
+            .dg-button,
+            .dg-button-group,
+            #editor {
+                display: none !important;
+            }
+
+            .modal {
+                display: none !important;
             }
         }
     </style>
@@ -468,15 +476,17 @@
             <ul>
                 <li>Name your diagrams by clicking on the title in edit mode</li>
                 <li>Export to SVG or PNG<br />
-                    <small>(Right-click on the button to copy to the clipboard instead of
-                        saving)</small>
-                </li>
-                <li>Include icons with syntax <code>!!graph_2!!</code><br />
-                    <small>(See <a href="https://fonts.google.com/icons?icon.style=Rounded" target="_blank">the list of available
-                            icons</a>; click on icons and find the "Icon name")</small>
+                    <small>Right-click on the button to copy to the clipboard instead of
+                        saving.</small>
                 </li>
                 <li>Share by copying the URL</li>
                 <li>Print using your browser</li>
+                <li>Include icons with syntax <code>!!graph_2!!</code><br />
+                    <small>Icons mostly work in flowcharts, but also in certain parts of class, state, and
+                        ER diagrams.<br />
+                        See <a href="https://fonts.google.com/icons?icon.style=Rounded" target="_blank">the list of
+                            available icons</a>; select an icon and find the "Icon name".</small>
+                </li>
             </ul>
 
             <p>Diagrama can be installed as a web app, and it works on small touch screens.</p>
@@ -590,7 +600,8 @@
                 Diagrama is built on top of the wonderful
                 <a href="https://microsoft.github.io/monaco-editor/" target="_blank">Monaco Editor</a> and
                 <a href="https://mermaid.js.org/" target="_blank">Mermaid</a> projects.<br />
-                The icons come from the <a href="https://github.com/google/material-design-icons" target="_blank">Material Symbols & Icons</a>
+                The icons come from the <a href="https://github.com/google/material-design-icons"
+                    target="_blank">Material Symbols & Icons</a>
                 project.
             </p>
         </div>
@@ -639,7 +650,8 @@
 
         const defaultContent = `---
 config:
-  fontFamily: system-ui
+  flowchart:
+    curve: linear
 ---
 flowchart TB
     step1[Learn the <a href="https://mermaid.js.org/intro/"
@@ -816,7 +828,8 @@ flowchart TB
 
         // Initialize Mermaid.
         mermaid.initialize({
-            theme: 'neutral',
+            fontFamily: "system-ui",
+            theme: 'neutral'
         });
         mermaid.registerLayoutLoaders(elkLayouts);
         window.mermaid = mermaid; // Expose for other scripts.
@@ -1238,7 +1251,7 @@ flowchart TB
             setData({pngScale: scale});
 
             const clone = svgElem.cloneNode(true);
-            await insertIconsStylesheet(iconsStylesheet, clone);
+            await injectStylesheet(clone);
             clone.removeAttribute('width');
             clone.removeAttribute('height');
             const bbox = svgElem.getBBox();
@@ -1312,7 +1325,7 @@ flowchart TB
             }
             // Clone SVG to avoid touching the DOM.
             const clone = svgElem.cloneNode(true);
-            await insertIconsStylesheet(iconsStylesheet, clone);
+            await injectStylesheet(clone);
 
             const svgData = new XMLSerializer().serializeToString(clone);
             const blob = new Blob([svgData], {type: 'image/svg+xml;charset=utf-8'});
@@ -1327,19 +1340,18 @@ flowchart TB
             }, 100);
         }
 
-        // insertIconsStylesheet inserts the icons stylesheet given by url into
-        // the given svg, but only if data.content is deemed to have icons.
-        async function insertIconsStylesheet(url, svg) {
-            if (!hasIconDirectives(data.content)) return;
-            const absoluteURL = new URL(url, window.location.href).href;
-            let cssText = await fetch(url).then(res => res.text());
-            cssText += `
-            #diagram-svg .material-symbols-rounded {
-                vertical-align: text-bottom;
-            }\n`;
+        // injectStylesheet inserts an ad-hoc stylesheet to better render the
+        // diagram when exporting it.
+        async function injectStylesheet(svg) {
+            let cssText = ["#diagram-svg a { color: inherit; text-decoration: underline; }"];
+
+            if (hasIconDirectives(data.content)) {
+                cssText.push("#diagram-svg .material-symbols-rounded { vertical-align: text-bottom; }");
+                cssText.push(await fetch(iconsStylesheet).then(res => res.text()));
+            }
 
             const style = document.createElementNS("http://www.w3.org/2000/svg", "style");
-            style.textContent = cssText;
+            style.textContent = cssText.join("\n");
             svg.insertBefore(style, svg.firstChild);
         }
 

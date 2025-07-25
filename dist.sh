@@ -22,6 +22,7 @@ rm -rf docs/monaco-editor/min-maps
 
 # Download Material Symbols stylesheet. The user-agent forces the woff2 font to
 # be linked.
+rm -rf docs/material-symbols
 curl -A "Firefox/999.0" -s "https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz@20" -o input.css
 
 # Identify font URL, download it and convert it to base64 in a file.
