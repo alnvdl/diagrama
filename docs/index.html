@@ -265,7 +265,7 @@
         /* Modal */
         .modal {
             align-items: center;
-            background: rgba(0, 0, 0, 0.6);
+            background: rgba(0, 0, 0, 0.75);
             bottom: 0;
             display: none;
             justify-content: center;
@@ -274,20 +274,36 @@
             right: 0;
             top: 0;
             z-index: 9999;
+            backdrop-filter: blur(3px);
         }
 
-        .modal-content {
+        .modal-dialog {
             background: var(--ui-background-color);
             border: 1px solid var(--ui-border-color);
             font-size: var(--modal-font-size);
-            max-height: 90dvh;
             overflow-y: auto;
-            padding: 1.5rem;
             position: relative;
+            max-width: 720px;
+            overflow: hidden;
         }
 
-        .modal .title {
+        .modal-title {
+            display: flex;
+            justify-content: space-between;
+            background: var(--ui-button-color);
+            border-bottom: 1px solid var(--ui-border-color);
+            padding: 0.75rem 1rem;
+        }
+
+        .modal-title h1 {
             margin: 0px;
+            font-weight: normal;
+        }
+
+        .modal-content {
+            padding: 1rem;
+            max-height: 90dvh;
+            overflow-y: auto;
         }
 
         .modal a {
@@ -300,12 +316,13 @@
             max-width: 40rem;
         }
 
+        .modal p:first-child {
+            margin-top: 0;
+        }
+
         .close-modal {
             border: 1px solid var(--ui-border-color);
             height: 32px;
-            position: absolute;
-            right: 10px;
-            top: 10px;
             width: 32px;
         }
 
@@ -351,12 +368,10 @@
 
         #help-content {
             max-width: 720px;
-            width: 90%;
         }
 
         #export-copy-content {
-            max-width: 300px;
-            width: 90%;
+            max-width: 400px;
         }
 
         kbd {
@@ -452,182 +467,192 @@
     <div id="notification-overlay"></div>
 
     <div id="help-modal" class="modal">
-        <div class="modal-content" id="help-content">
-            <button class="dg-button close-modal" id="close-help">
-                <span class="material-symbols-rounded">close</span>
-            </button>
-            <h1 class="title">Diagrama</h1>
-            <p>Diagrama is a minimalistic web-based diagram editor.<br />
-                It runs entirely client-side: your data does not leave your browser.<br/>
-                You can install it as a web app, and it works on small touch screens.
-            </p>
+        <div class="modal-dialog">
+            <div class="modal-title" id="help-title">
+                <h1 class="title">Diagrama</h1>
+                <button class="dg-button close-modal" id="close-help">
+                    <span class="material-symbols-rounded">close</span>
+                </button>
+            </div>
+            <div class="modal-content">
+                <p>Diagrama is a minimalistic web-based diagram editor.<br />
+                    It runs entirely client-side: your data does not leave your browser.<br />
+                    You can install it as a web app, and it works on small touch screens.
+                </p>
 
-            <p>The <a href="https://mermaid.js.org/intro/" target="_blank">Mermaid syntax</a> is used to write diagram
-                code, and you can:
-            </p>
-            <ul>
-                <li>Name your diagrams by clicking on the title in edit mode</li>
-                <li>Export to SVG or PNG or copy to the clipboard<br />
-                    <small>Right-click on the Export and Copy buttons to customize settings.</small>
-                </li>
-                <li>Share by copying the URL</li>
-                <li>Print using your browser</li>
-                <li>Include icons with syntax <code>!!graph_2!!</code><br />
-                    <small>Icons mostly work in flowcharts, but also in certain parts of class, state, and
-                        ER diagrams.<br />
-                        See <a href="https://fonts.google.com/icons?icon.style=Rounded" target="_blank">the list of
-                            available icons</a>; select an icon and find the "Icon name".</small>
-                </li>
-            </ul>
+                <p>The <a href="https://mermaid.js.org/intro/" target="_blank">Mermaid syntax</a> is used to write
+                    diagram
+                    code, and you can:
+                </p>
+                <ul>
+                    <li>Name your diagrams by clicking on the title in edit mode</li>
+                    <li>Export to SVG or PNG or copy to the clipboard<br />
+                        <small>Right-click on the Export and Copy buttons to customize settings.</small>
+                    </li>
+                    <li>Share by copying the URL</li>
+                    <li>Print using your browser</li>
+                    <li>Include icons with syntax <code>!!graph_2!!</code><br />
+                        <small>Icons mostly work in flowcharts, but also in certain parts of class, state, and
+                            ER diagrams.<br />
+                            See <a href="https://fonts.google.com/icons?icon.style=Rounded" target="_blank">the list of
+                                available icons</a>; select an icon and find the "Icon name".</small>
+                    </li>
+                </ul>
 
-            <hr />
+                <hr />
 
-            <table>
-                <thead>
-                    <tr>
-                        <th colspan="2">App shortcuts</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td><kbd>Ctrl</kbd>+<kbd>E</kbd></td>
-                        <td>show/hide the editor</td>
-                    </tr>
-                    <tr>
-                        <td><kbd>Ctrl</kbd>+<kbd>Enter</kbd></td>
-                        <td>update diagram based on the code</td>
-                    </tr>
-                    <tr>
-                        <td><kbd>Ctrl</kbd>+<kbd>P</kbd></td>
-                        <td>print diagram</td>
-                    </tr>
-                    <tr>
-                        <td><kbd>Ctrl</kbd>+<kbd>S</kbd></td>
-                        <td>copy diagram URL to the clipboard (share)</td>
-                    </tr>
-                    <tr>
-                        <td><kbd>Ctrl</kbd>+<kbd>C</kbd></td>
-                        <td>copy diagram to the clipboard (export)</td>
-                    </tr>
-                    <tr>
-                        <td><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>R</kbd></td>
-                        <td>reset diagram code to the default template</td>
-                    </tr>
-                </tbody>
-            </table>
-            <table>
-                <thead>
-                    <tr>
-                        <th colspan="2">Editor shortcuts</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td><kbd>Ctrl</kbd>+<kbd>F</kbd></td>
-                        <td>find-and-replace</td>
-                    </tr>
-                    <tr>
-                        <td><kbd>Ctrl</kbd> + click</td>
-                        <td>add cursors</td>
-                    </tr>
-                    <tr>
-                        <td><kbd>F2</kbd></td>
-                        <td>select all occurrences of the symbol under the cursor</td>
-                    </tr>
-                    <tr>
-                        <td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>K</kbd></td>
-                        <td>select next occurrence of the symbol under the cursor</td>
-                    </tr>
-                    <tr>
-                        <td><kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>Up</kbd></td>
-                        <td>add cursor to the line above</td>
-                    </tr>
-                    <tr>
-                        <td><kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>Down</kbd></td>
-                        <td>add cursor to the line below</td>
-                    </tr>
-                    <tr>
-                        <td><kbd>Ctrl</kbd>+<kbd>D</kbd></td>
-                        <td>delete line</td>
-                    </tr>
-                    <tr>
-                        <td><kbd>Ctrl</kbd>+<kbd>M</kbd></td>
-                        <td>go to matching brackets</td>
-                    </tr>
-                    <tr>
-                        <td><kbd>Ctrl</kbd> + scroll</td>
-                        <td>set the editor font size</td>
-                    </tr>
-                    <tr>
-                        <td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>0</kbd></td>
-                        <td>set automatic font size for the editor</td>
-                    </tr>
-                    <tr>
-                        <td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> or <kbd>F1</kbd></td>
-                        <td>see all available commands</td>
-                    </tr>
-                </tbody>
-            </table>
-            <table>
-                <thead>
-                    <tr>
-                        <th colspan="2">Diagram</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>Scroll</td>
-                        <td>zoom in/out the diagram</td>
-                    </tr>
-                    <tr>
-                        <td>Click and move cursor</td>
-                        <td>pan the diagram</td>
-                    </tr>
-                </tbody>
-            </table>
-            <hr />
+                <table>
+                    <thead>
+                        <tr>
+                            <th colspan="2">App shortcuts</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><kbd>Ctrl</kbd>+<kbd>E</kbd></td>
+                            <td>show/hide the editor</td>
+                        </tr>
+                        <tr>
+                            <td><kbd>Ctrl</kbd>+<kbd>Enter</kbd></td>
+                            <td>update diagram based on the code</td>
+                        </tr>
+                        <tr>
+                            <td><kbd>Ctrl</kbd>+<kbd>P</kbd></td>
+                            <td>print diagram</td>
+                        </tr>
+                        <tr>
+                            <td><kbd>Ctrl</kbd>+<kbd>S</kbd></td>
+                            <td>copy diagram URL to the clipboard (share)</td>
+                        </tr>
+                        <tr>
+                            <td><kbd>Ctrl</kbd>+<kbd>C</kbd></td>
+                            <td>copy diagram to the clipboard (export)</td>
+                        </tr>
+                        <tr>
+                            <td><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>R</kbd></td>
+                            <td>reset diagram code to the default template</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <table>
+                    <thead>
+                        <tr>
+                            <th colspan="2">Editor shortcuts</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><kbd>Ctrl</kbd>+<kbd>F</kbd></td>
+                            <td>find-and-replace</td>
+                        </tr>
+                        <tr>
+                            <td><kbd>Ctrl</kbd> + click</td>
+                            <td>add cursors</td>
+                        </tr>
+                        <tr>
+                            <td><kbd>F2</kbd></td>
+                            <td>select all occurrences of the symbol under the cursor</td>
+                        </tr>
+                        <tr>
+                            <td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>K</kbd></td>
+                            <td>select next occurrence of the symbol under the cursor</td>
+                        </tr>
+                        <tr>
+                            <td><kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>Up</kbd></td>
+                            <td>add cursor to the line above</td>
+                        </tr>
+                        <tr>
+                            <td><kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>Down</kbd></td>
+                            <td>add cursor to the line below</td>
+                        </tr>
+                        <tr>
+                            <td><kbd>Ctrl</kbd>+<kbd>D</kbd></td>
+                            <td>delete line</td>
+                        </tr>
+                        <tr>
+                            <td><kbd>Ctrl</kbd>+<kbd>M</kbd></td>
+                            <td>go to matching brackets</td>
+                        </tr>
+                        <tr>
+                            <td><kbd>Ctrl</kbd> + scroll</td>
+                            <td>set the editor font size</td>
+                        </tr>
+                        <tr>
+                            <td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>0</kbd></td>
+                            <td>set automatic font size for the editor</td>
+                        </tr>
+                        <tr>
+                            <td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> or <kbd>F1</kbd></td>
+                            <td>see all available commands</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <table>
+                    <thead>
+                        <tr>
+                            <th colspan="2">Diagram</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Scroll</td>
+                            <td>zoom in/out the diagram</td>
+                        </tr>
+                        <tr>
+                            <td>Click and move cursor</td>
+                            <td>pan the diagram</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <hr />
 
-            <p>The code is available on GitHub:
-                <a target="_blank"
-                    href="https://github.com/alnvdl/diagrama">https://github.com/alnvdl/diagrama</a><br />
-                Diagrama is built on top of the wonderful
-                <a href="https://microsoft.github.io/monaco-editor/" target="_blank">Monaco Editor</a> and
-                <a href="https://mermaid.js.org/" target="_blank">Mermaid</a> projects.<br />
-                The icons come from the <a href="https://github.com/google/material-design-icons"
-                    target="_blank">Material Symbols & Icons</a>
-                project.
-            </p>
+                <p>The code is available on GitHub:
+                    <a target="_blank"
+                        href="https://github.com/alnvdl/diagrama">https://github.com/alnvdl/diagrama</a><br />
+                    Diagrama is built on top of the wonderful
+                    <a href="https://microsoft.github.io/monaco-editor/" target="_blank">Monaco Editor</a> and
+                    <a href="https://mermaid.js.org/" target="_blank">Mermaid</a> projects.<br />
+                    The icons come from the <a href="https://github.com/google/material-design-icons"
+                        target="_blank">Material Symbols & Icons</a>
+                    project.
+                </p>
+            </div>
         </div>
     </div>
 
     <div id="export-copy-modal" class="modal">
-        <div class="modal-content" id="export-copy-content">
-            <button class="dg-button close-modal" id="close-export-copy">
-                <span class="material-symbols-rounded">close</span>
-            </button>
-            <h1 class="title">Export/copy diagram</h1>
-            <p>
-                <label>
-                    <strong>PNG scale</strong>:
-                    <span id="png-export-scale-value">2</span>
-                    <br />
-                    <input id="png-export-scale" type="range" min="1" max="100" value="2" style="width: 100%" />
-                </label>
-                <small id="scale-warning">...</small>
-            </p>
-            <div class="dg-button-group" style="float: right; margin-top: 1rem;">
-                <button class="dg-button" id="export-svg">
-                    <span class="material-symbols-rounded">code</span>
-                    <span class="label">Export SVG</span>
+        <div class="modal-dialog" id="export-copy-content">
+
+            <div class="modal-title" id="help-title">
+                <h1 class="title">Export/copy diagram</h1>
+                <button class="dg-button close-modal" id="close-export-copy">
+                    <span class="material-symbols-rounded">close</span>
                 </button>
-                <button class="dg-button" id="export-png">
-                    <span class="material-symbols-rounded">image</span>
-                    <span class="label">Export PNG</span>
-                </button>
-                <button class="dg-button" id="copy-png">
-                    <span class="material-symbols-rounded">content_copy</span>
-                    <span class="label">Copy to clipboard</span>
-                </button>
+            </div>
+            <div class="modal-content">
+                <p>
+                    <label>
+                        <strong>PNG scale</strong>:
+                        <span id="png-export-scale-value">2</span>
+                        <br />
+                        <input id="png-export-scale" type="range" min="1" max="100" value="2" style="width: 100%" />
+                    </label>
+                    <small id="scale-warning">...</small>
+                </p>
+                <div class="dg-button-group" style="float: right; margin-top: 1rem;">
+                    <button class="dg-button" id="export-svg">
+                        <span class="material-symbols-rounded">code</span>
+                        <span class="label">Export SVG</span>
+                    </button>
+                    <button class="dg-button" id="export-png">
+                        <span class="material-symbols-rounded">image</span>
+                        <span class="label">Export PNG</span>
+                    </button>
+                    <button class="dg-button" id="copy-png">
+                        <span class="material-symbols-rounded">content_copy</span>
+                        <span class="label">Copy to clipboard</span>
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -1037,7 +1062,7 @@ flowchart TB
 
         function showExportCopy(source) {
             let modal = document.getElementById('export-copy-modal');
-            const title = modal.querySelector('.title');
+            const title = modal.querySelector('h1');
             const scaleWarning = document.getElementById('scale-warning');
 
             if (source === 'copy') {
