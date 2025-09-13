@@ -6,8 +6,8 @@ To use the hosted version, go to: https://alnvdl.github.io/diagrama/
 
 To run it in development mode, you can use the following commands:
 ```bash
-$ node run dist      # (Re)download dependencies.
-$ node run devserver # Runs a local server to serve the static files.
+$ node run dist      # Updates the dist folder (./docs)
+$ node run devserver # Runs a server for local development.
 ```
 
 ## Why?
@@ -26,7 +26,7 @@ When building Diagrama, I also wanted to avoid the insane churn of the
 Javascript ecosystem by having a minimal setup that is easy to maintain in the
 long term:
 - Just two dependencies: Monaco and Mermaid.
-- No bundling/packing required for building.
+- ~~No bundling/packing required for building~~ (esbuild is awesome!)
 - No server-side code required to run the editor.
 - Quick and dirty vanilla JS and CSS code that can be easily maintained.
 

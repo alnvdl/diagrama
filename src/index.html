@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diagrama</title>
+
+    <link rel="manifest" href="manifest.json" />
+    <link rel="icon" href="./icon16.png" sizes="16x16" type="image/png">
+    <link rel="icon" href="./icon48.png" sizes="48x48" type="image/png">
+    <link rel="icon" href="./icon180.png" sizes="180x180" type="image/png">
+    <link rel="apple-touch-icon" href="./icon180.png" sizes="180x180" type="image/png">
+    <link rel="icon" href="./icon.svg" sizes="any" type="image/svg+xml">
+    <link rel="stylesheet" href="./material-symbols/font.css">
+    <link rel="stylesheet" href="./diagrama.css">
+</head>
+
+<body>
+    <div id="loading-overlay">
+        <div class="loading-content">
+            <div class="spinner"></div>
+            <div class="loading-label">Loading...</div>
+        </div>
+    </div>
+
+    <div id="notification-overlay"></div>
+
+    <div id="help-modal" class="modal">
+        <div class="modal-dialog">
+            <div class="modal-title" id="help-title">
+                <h1 class="title">Diagrama</h1>
+                <button class="dg-button close-modal" id="close-help">
+                    <span class="material-symbols-rounded">close</span>
+                </button>
+            </div>
+            <div class="modal-content">
+                <p>Diagrama is a minimalistic web-based diagram editor.<br />
+                    It runs entirely client-side: your data does not leave your browser.<br />
+                    You can install it as a web app, and it works on small touch screens.
+                </p>
+
+                <p>The <a href="https://mermaid.js.org/intro/" target="_blank">Mermaid syntax</a> is used to write
+                    diagram
+                    code, and you can:
+                </p>
+                <ul>
+                    <li>Name your diagrams by clicking on the title in edit mode</li>
+                    <li>Export to SVG or PNG or copy to the clipboard<br />
+                        <small>Right-click on the Export and Copy buttons to customize settings.</small>
+                    </li>
+                    <li>Share by copying the URL</li>
+                    <li>Print using your browser</li>
+                    <li>Include icons with syntax <code>!!graph_2!!</code><br />
+                        <small>Icons mostly work in flowcharts, but also in certain parts of class, state, and
+                            ER diagrams.<br />
+                            See <a href="https://fonts.google.com/icons?icon.style=Rounded" target="_blank">the list of
+                                available icons</a>; select an icon and find the "Icon name".</small>
+                    </li>
+                </ul>
+
+                <hr />
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th colspan="2">App shortcuts</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><kbd>Ctrl</kbd>+<kbd>E</kbd></td>
+                            <td>show/hide the editor</td>
+                        </tr>
+                        <tr>
+                            <td><kbd>Ctrl</kbd>+<kbd>Enter</kbd></td>
+                            <td>update diagram based on the code</td>
+                        </tr>
+                        <tr>
+                            <td><kbd>Ctrl</kbd>+<kbd>P</kbd></td>
+                            <td>print diagram</td>
+                        </tr>
+                        <tr>
+                            <td><kbd>Ctrl</kbd>+<kbd>S</kbd></td>
+                            <td>copy diagram URL to the clipboard (share)</td>
+                        </tr>
+                        <tr>
+                            <td><kbd>Ctrl</kbd>+<kbd>C</kbd></td>
+                            <td>copy diagram to the clipboard (export)</td>
+                        </tr>
+                        <tr>
+                            <td><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>R</kbd></td>
+                            <td>reset diagram code to the default template</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <table>
+                    <thead>
+                        <tr>
+                            <th colspan="2">Editor shortcuts</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><kbd>Ctrl</kbd>+<kbd>F</kbd></td>
+                            <td>find-and-replace</td>
+                        </tr>
+                        <tr>
+                            <td><kbd>Ctrl</kbd> + click</td>
+                            <td>add cursors</td>
+                        </tr>
+                        <tr>
+                            <td><kbd>F2</kbd></td>
+                            <td>select all occurrences of the symbol under the cursor</td>
+                        </tr>
+                        <tr>
+                            <td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>K</kbd></td>
+                            <td>select next occurrence of the symbol under the cursor</td>
+                        </tr>
+                        <tr>
+                            <td><kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>Up</kbd></td>
+                            <td>add cursor to the line above</td>
+                        </tr>
+                        <tr>
+                            <td><kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>Down</kbd></td>
+                            <td>add cursor to the line below</td>
+                        </tr>
+                        <tr>
+                            <td><kbd>Ctrl</kbd>+<kbd>D</kbd></td>
+                            <td>delete line</td>
+                        </tr>
+                        <tr>
+                            <td><kbd>Ctrl</kbd>+<kbd>M</kbd></td>
+                            <td>go to matching brackets</td>
+                        </tr>
+                        <tr>
+                            <td><kbd>Ctrl</kbd> + scroll</td>
+                            <td>set the editor font size</td>
+                        </tr>
+                        <tr>
+                            <td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>0</kbd></td>
+                            <td>set automatic font size for the editor</td>
+                        </tr>
+                        <tr>
+                            <td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> or <kbd>F1</kbd></td>
+                            <td>see all available commands</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <table>
+                    <thead>
+                        <tr>
+                            <th colspan="2">Diagram</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Scroll</td>
+                            <td>zoom in/out the diagram</td>
+                        </tr>
+                        <tr>
+                            <td>Click and move cursor</td>
+                            <td>pan the diagram</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <hr />
+
+                <p>The code is available on GitHub:
+                    <a target="_blank"
+                        href="https://github.com/alnvdl/diagrama">https://github.com/alnvdl/diagrama</a><br />
+                    Diagrama is built on top of the wonderful
+                    <a href="https://microsoft.github.io/monaco-editor/" target="_blank">Monaco Editor</a> and
+                    <a href="https://mermaid.js.org/" target="_blank">Mermaid</a> projects.<br />
+                    The icons come from the <a href="https://github.com/google/material-design-icons"
+                        target="_blank">Material Symbols & Icons</a>
+                    project.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div id="export-copy-modal" class="modal">
+        <div class="modal-dialog" id="export-copy-content">
+
+            <div class="modal-title" id="help-title">
+                <h1 class="title">Export/copy diagram</h1>
+                <button class="dg-button close-modal" id="close-export-copy">
+                    <span class="material-symbols-rounded">close</span>
+                </button>
+            </div>
+            <div class="modal-content">
+                <p>
+                    <label>
+                        <strong>PNG scale</strong>:
+                        <span id="png-export-scale-value">2</span>
+                        <br />
+                        <input id="png-export-scale" type="range" min="1" max="100" value="2" style="width: 100%" />
+                    </label>
+                    <small id="scale-warning">...</small>
+                </p>
+                <div class="dg-button-group" style="float: right; margin-top: 1rem;">
+                    <button class="dg-button" id="export-svg">
+                        <span class="material-symbols-rounded">code</span>
+                        <span class="label">Export SVG</span>
+                    </button>
+                    <button class="dg-button" id="export-png">
+                        <span class="material-symbols-rounded">image</span>
+                        <span class="label">Export PNG</span>
+                    </button>
+                    <button class="dg-button" id="copy-png">
+                        <span class="material-symbols-rounded">content_copy</span>
+                        <span class="label">Copy to clipboard</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="app-grid" class="view-mode">
+        <div id="header">
+            <input id="diagram-name" type="text" placeholder="Untitled diagram" />
+            <div class="dg-button-group">
+                <button class="dg-button fixed-width" id="open-help">
+                    <span class="material-symbols-rounded">help</span>
+                    <span class="label collapse">Help</span>
+                </button>
+            </div>
+            <div class="dg-button-group">
+                <button class="dg-button fixed-width" id="export">
+                    <span class="material-symbols-rounded">file_save</span>
+                    <span class="label collapse">Export</span>
+                </button>
+                <button class="dg-button fixed-width" id="share">
+                    <span class="material-symbols-rounded">share</span>
+                    <span class="label collapse">Share</span>
+                </button>
+                <button class="dg-button fixed-width" id="copy">
+                    <span class="material-symbols-rounded">content_copy</span>
+                    <span class="label collapse">Copy</span>
+                </button>
+            </div>
+            <div class="dg-button-group">
+                <button class="dg-button fixed-width" id="set-mode-edit">
+                    <span class="material-symbols-rounded">edit</span>
+                    <span class="label collapse">Edit</span>
+                </button>
+                <button class="dg-button fixed-width" id="set-mode-view">
+                    <span class="material-symbols-rounded">visibility</span>
+                    <span class="label collapse">View</span>
+                </button>
+            </div>
+        </div>
+        <div id="editor" class="hidden"></div>
+        <div id="diagram">
+        </div>
+    </div>
+    <script src="./diagrama.js"></script>
+    <script>
+        window.addEventListener('load', function() {
+            var overlay = document.getElementById('loading-overlay');
+            if (overlay) {
+                overlay.style.opacity = '0';
+                // Wait a bit before hiding the overlay to allow the fade-out
+                // animation to complete.
+                setTimeout(function() {
+                    overlay.style.display = 'none';
+                }, 200);
+            }
+        });
+    </script>
+</body>
+
+</html>
