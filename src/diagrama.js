@@ -458,7 +458,7 @@ async function export_(formatID, clipboard) {
         if (clipboard) {
             let msg = !err ?
                 "Diagram copied to the clipboard" :
-                "Error copying diagram to the clipboard.";
+                "Error copying diagram to the clipboard";
             showNotification(msg, !err);
         } else {
             if (err) showNotification("Error exporting diagram", false);
@@ -485,8 +485,20 @@ async function share() {
     }
     let msg = ok ?
         "Link copied to the clipboard" :
-        "Error copying link to the clipboard, please click on the page and try again.";
+        "Error copying link to the clipboard";
     showNotification(msg, ok);
+}
+
+async function showNotification(msg, ok) {
+    const overlay = document.getElementById('notification-overlay');
+    overlay.innerHTML = msg;
+    ok ? overlay.classList.remove('error') : overlay.classList.add('error');
+    overlay.classList.add('show');
+
+    clearTimeout(notificationOverlayTimeout);
+    notificationOverlayTimeout = setTimeout(() => {
+        overlay.classList.remove('show');
+    }, 2000);
 }
 
 // Auto-adjust editor font on resize.
@@ -549,18 +561,6 @@ function setEditorFontSize(fontSize) {
     fontSize = Math.max(Math.floor(editor.offsetWidth / 55), 9);
     let lineHeight = Math.floor(fontSize * lineHeightRatio);
     monacoEditor.updateOptions({fontSize, lineHeight});
-}
-
-async function showNotification(msg, ok) {
-    const overlay = document.getElementById('notification-overlay');
-    overlay.innerHTML = msg;
-    ok ? overlay.classList.remove('error') : overlay.classList.add('error');
-    overlay.classList.add('show');
-
-    clearTimeout(notificationOverlayTimeout);
-    notificationOverlayTimeout = setTimeout(() => {
-        overlay.classList.remove('show');
-    }, 2000);
 }
 
 function initLang(monacoEditor) {
@@ -784,10 +784,12 @@ async function pngDownload(svgElem, fileName, clipboard, done) {
 }
 
 async function svgDownload(svgElem, fileName, clipboard) {
+    // Copying the SVG to the clipboard is not supported/mostly useless.
     if (clipboard) {
-        showNotification("Copying SVG to the clipboard is not supported", false);
+        console.error("Copying SVG to the clipboard is not supported");
         return;
     }
+
     // Clone SVG to avoid touching the DOM.
     const clone = svgElem.cloneNode(true);
     await injectStylesheet(clone);
