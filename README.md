@@ -6,8 +6,9 @@ To use the hosted version, go to: https://alnvdl.github.io/diagrama/
 
 To run it in development mode, you can use the following commands:
 ```bash
-$ node run dist  # Updates the dist folder (./docs)
 $ node run dev   # Runs a server for local development
+$ node run font  # Vendors the Material Symbols font in src
+$ node run dist  # Updates the dist folder (./docs)
 ```
 
 ## Why?

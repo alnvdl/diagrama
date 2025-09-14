@@ -2,30 +2,21 @@
 
 set -e
 
-APACHE_LICENSE="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"
-
 # step prints the given message in bold.
 step() {
     echo -e "\033[1m$1\033[0m"
 }
 
 step "Installing dependencies..."
-rm -rf node_modules
 npm install
 
-build() {
-    step "Rebuilding diagrama..."
-    rm -rf docs
-    mkdir -p docs
-    cp src/icon* docs
-    cp src/index.html docs
-    cp src/manifest.json docs
-    ./node_modules/esbuild/bin/esbuild src/diagrama.js --bundle --minify --sourcemap --loader:.ttf=dataurl --outfile=docs/diagrama.js
+vendor_material_symbols_font() {
+    mkdir -p src/material-symbols
+    cd src/material-symbols
 
     step "Downloading and embedding the Material Symbols font..."
     # Download Material Symbols stylesheet. The user-agent forces the woff2
     # font to be linked.
-    rm -rf docs/material-symbols
     curl -A "Firefox/999.0" -s "https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz@20" -o input.css
 
     # Identify font URL, download it and convert it to base64 in a file.
@@ -51,14 +42,23 @@ build() {
     }
     ' placeholder.css > output.css
 
-    mkdir -p docs/material-symbols
-    mv output.css docs/material-symbols/font.css
+    mv output.css font.css
     rm -rf font.woff2 font.woff2.b64 input.css placeholder.css
 
-    echo $APACHE_LICENSE | base64 -d | gzip -d > docs/material-symbols/LICENSE
-
-    step "Build complete!"
+    step "Material Symbols font (re)downloaded in src folder."
 }
+
+build() {
+    step "Rebuilding diagrama..."
+    rm -rf dist; mkdir -p dist; cp -r src/* dist
+    ./node_modules/esbuild/bin/esbuild dist/diagrama.js --bundle --minify --sourcemap --loader:.ttf=dataurl --outfile=dist/diagrama.js --allow-overwrite
+    step "Build completed."
+}
+
+if [ "$1" == "font" ]; then
+  vendor_material_symbols_font
+  exit 0
+fi
 
 if [ "$1" == "dist" ]; then
   step "Building distribution package..."
@@ -66,7 +66,7 @@ if [ "$1" == "dist" ]; then
   exit 0
 fi
 
-python3 -u -m http.server 8080 -d docs > /tmp/diagrama.log 2>&1 &
+python3 -u -m http.server 8080 -d dist > /tmp/diagrama.log 2>&1 &
 DEVSERVER_PID=$!
 trap "kill $DEVSERVER_PID" EXIT
 
