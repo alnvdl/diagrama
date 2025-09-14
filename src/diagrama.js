@@ -432,38 +432,43 @@ async function export_(formatID, clipboard) {
         return;
     }
 
-    // Show loading indicator during exports, and disable buttons to avoid
+    // Show loading indicator during PNG exports, and disable buttons to avoid
     // multiple exports at the same time.
-    let opButton = clipboard ? document.getElementById('copy') : document.getElementById('export');
-    ['export', 'copy'].forEach(type => {
-        document.getElementById(type).disabled = true;
-    });
-    const icon = opButton ? opButton.querySelector('.material-symbols-rounded') : null;
-    const originalIcon = icon ? icon.textContent : null;
-    if (icon) {
-        icon.textContent = 'progress_activity';
-        icon.classList.add('icon-spinner');
-    }
-    const doneCallback = (err) => {
-        if (icon && originalIcon) {
-            icon.textContent = originalIcon;
-            icon.classList.remove('icon-spinner');
-        }
-        ['export', 'copy'].forEach(type => {
-            document.getElementById(type).disabled = false;
-        });
-        exporting = false;
+    let doneCallback;
+    if (formatID === 'png') {
+        exporting = true;
 
-        if (err) console.error(err);
-        if (clipboard) {
-            let msg = !err ?
-                "Diagram copied to the clipboard" :
-                "Error copying diagram to the clipboard";
-            showNotification(msg, !err);
-        } else {
-            if (err) showNotification("Error exporting diagram", false);
+        let opButton = clipboard ? document.getElementById('copy') : document.getElementById('export');
+        ['export', 'copy'].forEach(type => {
+            document.getElementById(type).disabled = true;
+        });
+        const icon = opButton ? opButton.querySelector('.material-symbols-rounded') : null;
+        const originalIcon = icon ? icon.textContent : null;
+        if (icon) {
+            icon.textContent = 'progress_activity';
+            icon.classList.add('icon-spinner');
         }
-    };
+        doneCallback = (err) => {
+            if (icon && originalIcon) {
+                icon.textContent = originalIcon;
+                icon.classList.remove('icon-spinner');
+            }
+            ['export', 'copy'].forEach(type => {
+                document.getElementById(type).disabled = false;
+            });
+            exporting = false;
+
+            if (err) console.error(err);
+            if (clipboard) {
+                let msg = !err ?
+                    "Diagram copied to the clipboard" :
+                    "Error copying diagram to the clipboard";
+                showNotification(msg, !err);
+            } else {
+                if (err) showNotification("Error exporting diagram", false);
+            }
+        };
+    }
 
     let name = document.getElementById('diagram-name').value.trim() || 'Diagrama';
     if (!name.toLowerCase().endsWith(format.ext)) name += format.ext;
