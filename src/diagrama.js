@@ -456,9 +456,6 @@ async function export_(formatID, clipboard) {
             ['export', 'copy'].forEach(type => {
                 document.getElementById(type).disabled = false;
             });
-            exporting = false;
-
-            if (err) console.error(err);
             if (clipboard) {
                 let msg = !err ?
                     "Diagram copied to the clipboard" :
@@ -467,6 +464,7 @@ async function export_(formatID, clipboard) {
             } else {
                 if (err) showNotification("Error exporting diagram", false);
             }
+            exporting = false;
         };
     }
 
@@ -745,46 +743,45 @@ async function pngDownload(svgElem, fileName, clipboard, done) {
     svgString = `<?xml version="1.0" encoding="UTF-8"?>` + svgString;
     const encodedData = btoa(unescape(encodeURIComponent(svgString)));
 
-    const img = new window.Image();
-    img.onerror = function(e) {
-        done(e);
-    };
-    img.onload = function() {
-        try {
-            const canvas = document.createElement("canvas");
-            canvas.width = viewBoxWidth * data.pngScale;
-            canvas.height = viewBoxHeight * data.pngScale;
-            const ctx = canvas.getContext("2d");
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.setTransform(data.pngScale, 0, 0, data.pngScale, 0, 0);
-            ctx.drawImage(img, 0, 0);
-            canvas.toBlob(async function(blob) {
-                if (clipboard) {
-                    let ok = true;
-                    try {
-                        await navigator.clipboard.write([
-                            new ClipboardItem({"image/png": blob})
-                        ]);
-                    } catch (e) {
-                        done(e);
-                    }
-                } else {
-                    const a = document.createElement("a");
-                    a.href = URL.createObjectURL(blob);
-                    a.download = fileName;
-                    document.body.appendChild(a);
-                    a.click();
-                    setTimeout(() => {
-                        document.body.removeChild(a);
-                        URL.revokeObjectURL(a.href);
-                    }, 100);
-                }
+    let notifyDone = function(fn) {
+        return async function(...args) {
+            try {
+                await fn(...args);
                 done();
-            }, "image/png");
-        } catch (e) {
-            done(e);
+            } catch (e) {
+                console.error(e);
+                done(e);
+            }
         }
-    };
+    }
+
+    const img = new window.Image();
+    img.onload = notifyDone(function() {
+        const canvas = document.createElement("canvas");
+        canvas.width = viewBoxWidth * data.pngScale;
+        canvas.height = viewBoxHeight * data.pngScale;
+        const ctx = canvas.getContext("2d");
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.setTransform(data.pngScale, 0, 0, data.pngScale, 0, 0);
+        ctx.drawImage(img, 0, 0);
+        canvas.toBlob(notifyDone(async function(blob) {
+            if (clipboard) {
+                await navigator.clipboard.write([
+                    new ClipboardItem({"image/png": blob})
+                ]);
+            } else {
+                const a = document.createElement("a");
+                a.href = URL.createObjectURL(blob);
+                a.download = fileName;
+                document.body.appendChild(a);
+                a.click();
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(a.href);
+                }, 100);
+            }
+        }, "image/png"));
+    });
     img.src = "data:image/svg+xml;base64," + encodedData;
 }
 
