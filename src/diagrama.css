@@ -70,6 +70,10 @@ body {
     margin-bottom: 16px;
 }
 
+.icon-spinner {
+    animation: spin 1s linear infinite;
+}
+
 /* App */
 #app-grid {
     display: grid;
@@ -143,6 +147,11 @@ body {
     transition: background-color var(--ui-slow-transition);
 }
 
+.dg-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
 .dg-button.fixed-width {
     width: 5.5rem;
 }
@@ -186,7 +195,7 @@ body {
     transform: none;
     transition: opacity var(--ui-slow-transition);
     z-index: 9999;
-    max-width: 15rem;
+    max-width: 20rem;
 }
 
 #notification-overlay.error {

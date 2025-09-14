@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "devserver": "./build.sh",
+    "dev": "./build.sh",
     "dist": "./build.sh dist"
   },
   "author": "",
