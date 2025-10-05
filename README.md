@@ -8,7 +8,7 @@ To run it in development mode, you can use the following commands:
 ```bash
 $ npm run dev   # Runs a server for local development
 $ npm run font  # Refreshes the vendored Material Symbols font
-$ npm run dist  # Updates the dist folder (./docs)
+$ npm run dist  # Builds the dist folder with all static assets
 ```
 
 ## Why?

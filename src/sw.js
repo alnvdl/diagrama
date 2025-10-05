@@ -2,6 +2,7 @@ const CACHE_NAME = "diagrama-cache-v1";
 
 // Remember to add new URLs in case you introduce new files in src.
 const OFFLINE_URLS = [
+    "/diagrama",
     "index.html",
     "diagrama.js",
     "diagrama.css",
@@ -16,13 +17,6 @@ const OFFLINE_URLS = [
 self.addEventListener("install", event => {
     event.waitUntil(caches.open(CACHE_NAME).then(cache => {
         cache.addAll(OFFLINE_URLS);
-        // Add /diagrama or / to the cache. The former is used when deployed
-        // to GH pages, the latter when running locally. Ideally, this would be
-        // a configuration respected here and in manifest.json, but alas...
-        cache.add("/diagrama").catch((err) => {
-            console.warn("cannot fetch /diagrama, falling back to /: " + err);
-            cache.add("/");
-        });
     }));
     self.skipWaiting();
 });

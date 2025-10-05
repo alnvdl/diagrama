@@ -2,6 +2,14 @@
 
 set -e
 
+if [ "$1" != "dev" ] && [ "$1" != "font" ] && [ "$1" != "dist" ]; then
+  echo "Usage: $0 [dev|font|dist]"
+  echo "  dev:  Runs a server for local development"
+  echo "  font: Refreshes the vendored Material Symbols font"
+  echo "  dist: Builds the dist folder with all static assets"
+  exit 1
+fi
+
 # step prints the given message in bold.
 step() {
     echo -e "\033[1m$1\033[0m"
@@ -52,6 +60,23 @@ build() {
     step "Rebuilding diagrama..."
     rm -rf dist; mkdir -p dist; cp -r src/* dist
     ./node_modules/esbuild/bin/esbuild dist/diagrama.js --bundle --minify --sourcemap --loader:.ttf=dataurl --outfile=dist/diagrama.js --allow-overwrite
+
+    # If in dev mode, move all assets to the /diagrama subfolder.
+    #
+    # This application is meant to be hosted in GitHub Pages, and it hardcodes
+    # the assumption that it is served from the `/diagrama` path. If you want
+    # to host it some other way, you will need to change a few paths in
+    # `manifest.json`, `sw.js` and here.
+    if [ "$1" == "dev" ]; then
+      step "Moving application under /diagrama..."
+      mkdir -p dist/diagrama
+      for item in dist/*; do
+        [ "$item" = "dist/diagrama" ] && continue
+        mv "$item" dist/diagrama/
+      done
+      echo "<html><head><meta http-equiv='refresh' content='0;url=/diagrama/'></head></html>" > dist/index.html
+    fi
+
     step "Build completed."
 }
 
@@ -62,7 +87,7 @@ fi
 
 if [ "$1" == "dist" ]; then
   step "Building distribution package..."
-  build
+  build dist
   exit 0
 fi
 
@@ -71,8 +96,8 @@ DEVSERVER_PID=$!
 trap "kill $DEVSERVER_PID" EXIT
 
 while true; do
-  build
-  step "Development server at http://localhost:8080, logs in /tmp/diagrama.log"
+  build dev
+  step "Development server at http://localhost:8080, logs in /tmp/diagrama.log."
   step "[Press Enter to rebuild, or Ctrl+C to exit]"
   read -r
 done
