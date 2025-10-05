@@ -2,7 +2,7 @@
     "short_name": "Diagrama",
     "name": "Diagrama",
     "description": "A minimalistic web-based diagram editor based on the Monaco Editor and Mermaid.",
-    "start_url": "/diagrama",
+    "start_url": "/",
     "display": "standalone",
     "icons": [
         {
