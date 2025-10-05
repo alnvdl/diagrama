@@ -1,24 +1,33 @@
-const CACHE_NAME = 'diagrama-cache-v1';
+const CACHE_NAME = "diagrama-cache-v1";
 
 // Remember to add new URLs in case you introduce new files in src.
 const OFFLINE_URLS = [
-    '/',
-    'index.html',
-    'diagrama.js',
-    'diagrama.css',
-    'manifest.json',
-    'icon16.png',
-    'icon48.png',
-    'icon180.png',
-    'icon.svg',
+    "index.html",
+    "diagrama.js",
+    "diagrama.css",
+    "manifest.json",
+    "icon16.png",
+    "icon48.png",
+    "icon180.png",
+    "icon.svg",
+    "material-symbols/font.css"
 ];
 
-self.addEventListener('install', event => {
-    event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(OFFLINE_URLS)));
+self.addEventListener("install", event => {
+    event.waitUntil(caches.open(CACHE_NAME).then(cache => {
+        cache.addAll(OFFLINE_URLS);
+        // Add /diagrama or / to the cache. The former is used when deployed
+        // to GH pages, the latter when running locally. Ideally, this would be
+        // a configuration respected here and in manifest.json, but alas...
+        cache.add("/diagrama").catch((err) => {
+            console.warn("cannot fetch /diagrama, falling back to /: " + err);
+            cache.add("/");
+        });
+    }));
     self.skipWaiting();
 });
 
-self.addEventListener('activate', event => {
+self.addEventListener("activate", event => {
     event.waitUntil(
         caches.keys().then(keys =>
             Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
@@ -27,8 +36,8 @@ self.addEventListener('activate', event => {
     self.clients.claim();
 });
 
-self.addEventListener('fetch', event => {
-    if (event.request.method !== 'GET') return;
+self.addEventListener("fetch", event => {
+    if (event.request.method !== "GET") return;
     event.respondWith(
         // Try the network first.
         fetch(event.request)
@@ -45,8 +54,8 @@ self.addEventListener('fetch', event => {
                 return caches.match(event.request).then(cached => {
                     if (cached) return cached;
                     // Fallback to / for navigation requests.
-                    if (event.request.mode === 'navigate') {
-                        return caches.match('/');
+                    if (event.request.mode === "navigate") {
+                        return caches.match("/");
                     }
                 });
             })
