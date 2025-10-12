@@ -37,13 +37,27 @@ const defaultData = {
 let data = null;
 let exporting = false;
 
+function fromB64(str) {
+    const bytes = Uint8Array.from(atob(str), c => c.charCodeAt(0));
+    return new TextDecoder().decode(bytes);
+}
+
+function toB64(str) {
+    const bytes = new TextEncoder().encode(str);
+    let binary = '';
+    bytes.forEach((b) => binary += String.fromCharCode(b));
+    return btoa(binary);
+}
+
 // Icons can be included with !!icon-name!!, and we translate them
 // right before rendering.
 const iconRegex = /!!([a-z0-9-_]+)!!/i;
+
 const iconsStylesheet = "./material-symbols/font.css";
 function hasIconDirectives(content) {
     return iconRegex.test(content);
 }
+
 function withIconElements(content) {
     return content.replace(
         new RegExp(iconRegex.source, 'gi'),
@@ -60,7 +74,7 @@ function loadData() {
     try {
         const hash = window.location.hash.replace(/^#/, '');
         if (!hash) throw new Error("no data in hash");
-        const json = decodeURIComponent(escape(atob(hash)));
+        const json = fromB64(hash);
         return Object.assign({}, defaultData, JSON.parse(json));
     } catch (e) {
         try {
@@ -117,7 +131,7 @@ function saveData(data) {
     try {
         const json = JSON.stringify(data);
         localStorage.setItem("data", json);
-        const b64 = btoa(unescape(encodeURIComponent(json)));
+        const b64 = toB64(json);
         window.location.hash = b64;
     } catch (e) {
         // Ignore encoding errors.
@@ -133,7 +147,6 @@ function saveData(data) {
 function setMode(mode) {
     const appGrid = document.getElementById('app-grid');
     const editor = document.getElementById('editor');
-    const diagram = document.getElementById('diagram');
     const diagramNameElem = document.getElementById('diagram-name');
     if (mode === 'edit') {
         appGrid.classList.replace('view-mode', 'edit-mode');
@@ -664,14 +677,10 @@ function enablePanZoom(svg) {
         let rectAspect = rect.width / rect.height;
         let renderWidth = rect.width;
         let renderHeight = rect.height;
-        let offsetX = 0;
-        let offsetY = 0;
         if (rectAspect > vbAspect) {
             renderWidth = rect.height * vbAspect;
-            offsetX = (rect.width - renderWidth) / 2;
         } else if (rectAspect < vbAspect) {
             renderHeight = rect.width / vbAspect;
-            offsetY = (rect.height - renderHeight) / 2;
         }
         let dx = (e.clientX - start.x) * viewBox.width / renderWidth;
         let dy = (e.clientY - start.y) * viewBox.height / renderHeight;
@@ -741,7 +750,6 @@ async function pngDownload(svgElem, fileName, clipboard, done) {
     // links or images embedded in the diagram.
     let svgString = new XMLSerializer().serializeToString(clone);
     svgString = `<?xml version="1.0" encoding="UTF-8"?>` + svgString;
-    const encodedData = btoa(unescape(encodeURIComponent(svgString)));
 
     let notifyDone = function(fn) {
         return async function(...args) {
@@ -782,7 +790,7 @@ async function pngDownload(svgElem, fileName, clipboard, done) {
             }
         }, "image/png"));
     });
-    img.src = "data:image/svg+xml;base64," + encodedData;
+    img.src = "data:image/svg+xml;base64," + toB64(svgString);
 }
 
 async function svgDownload(svgElem, fileName, clipboard) {
@@ -809,8 +817,8 @@ async function svgDownload(svgElem, fileName, clipboard) {
     }, 100);
 }
 
-// injectStylesheet inserts an ad-hoc stylesheet to better render the
-// diagram when exporting it.
+// injectStylesheet inserts an ad-hoc stylesheet to better render the diagram
+// when exporting it.
 async function injectStylesheet(svg) {
     let cssText = ["#diagram-svg a { color: inherit; text-decoration: underline; }"];
 
