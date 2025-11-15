@@ -179,7 +179,7 @@ body {
     min-height: 32px;
 }
 
-.dg-button-group .dg-button:not(:only-child):not(.hidden)+.dg-button:not(.hidden) {
+.dg-button-group .dg-button:not(:first-child) {
     border-left: 1px solid var(--ui-border-color);
 }
 
@@ -196,7 +196,7 @@ body {
     top: 3.5rem;
     transform: none;
     transition: opacity var(--ui-slow-transition);
-    z-index: 9999;
+    z-index: 10000;
     max-width: 20rem;
 }
 
@@ -306,11 +306,6 @@ body {
     font-weight: var(--ui-font-weight);
 }
 
-.modal p {
-    line-height: 1.5rem;
-    max-width: 40rem;
-}
-
 .modal p:first-child {
     margin-top: 0;
 }
@@ -365,8 +360,67 @@ body {
     max-width: 720px;
 }
 
-#export-copy-content {
-    max-width: 400px;
+#help-modal p {
+    line-height: 1.5rem;
+    max-width: 40rem;
+}
+
+#export-content {
+    max-width: 500px;
+}
+
+#library-content {
+    width: 500px;
+    max-width: 500px;
+}
+
+#library-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.library-list-section-label {
+    margin: 0;
+    font-weight: bold;
+}
+
+.library-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem;
+}
+
+.library-item-info {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.library-item-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.library-item-timestamp {
+    font-style: italic;
+    font-size: 0.7rem;
+    opacity: 0.5;
+}
+
+.library-item .dg-button-group {
+    margin-left: 0.5rem;
+    flex-shrink: 0;
+}
+
+.library-empty {
+    color: var(--ui-font-color);
+    opacity: 0.7;
+    padding: 1rem;
+    text-align: center;
 }
 
 kbd {
@@ -400,16 +454,25 @@ only screen and (max-width: 1280px) {
     /* Header */
     #header {
         padding: 0.5rem;
-        gap: 0.5rem;
+        gap: 0.25rem;
     }
 
     #diagram-name {
-        font-size: 1.2rem;
+        font-size: 1.0rem;
+        font-weight: bold;
+    }
+
+    .dg-button {
+        font-size: var(--mobile-ui-font-size);
+    }
+
+    .dg-button-group {
+        height: 28px;
+        min-height: 28px;
     }
 
     .dg-button.fixed-width {
-        width: 32px;
-        font-size: var(--mobile-ui-font-size);
+        width: 26px;
     }
 
     .dg-button>span.label.collapse {

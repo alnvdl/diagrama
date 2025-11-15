@@ -65,11 +65,13 @@ function withIconElements(content) {
 }
 
 let notificationOverlayTimeout;
+let saveDataTimeout;
 
 // loadData tries to load diagram data in the following order until one
-// attempt succeeds: base64-encoded JSON in URL hash, JSON in local
-// storage, default template. It always returns a valid data object
-// ready to be used with updateData.
+// attempt succeeds: base64-encoded JSON in URL hash, selected diagram
+// from new storage model, legacy "data" key in local storage, default
+// template. It always returns a valid data object ready to be used with
+// updateData.
 function loadData() {
     try {
         const hash = window.location.hash.replace(/^#/, '');
@@ -78,29 +80,77 @@ function loadData() {
         return Object.assign({}, defaultData, JSON.parse(json));
     } catch (e) {
         try {
-            const dataStr = localStorage.getItem("data");
-            if (!dataStr) throw new Error("no data in local storage");
-            return Object.assign({}, defaultData, JSON.parse(dataStr));
+            // Try loading the selected diagram from local storage.
+            const selectedDiagramName = localStorage.getItem("selectedDiagram");
+            const diagramsStr = localStorage.getItem("diagrams");
+            if (selectedDiagramName && diagramsStr) {
+                const diagrams = JSON.parse(diagramsStr);
+                const diagramData = diagrams[selectedDiagramName];
+                if (diagramData) {
+                    return Object.assign({}, defaultData, diagramData);
+                }
+            }
+            throw new Error("no selected diagram in new model");
         } catch (e) {
-            return defaultData;
+            try {
+                // Try loading from legacy "data" field in local storage.
+                const dataStr = localStorage.getItem("data");
+                if (!dataStr) throw new Error("no data in local storage");
+                const legacyData = JSON.parse(dataStr);
+                // Migrate legacy data to new local storage format.
+                migrateLegacyData(legacyData);
+                return Object.assign({}, defaultData, legacyData);
+            } catch (e) {
+                return defaultData;
+            }
         }
     }
 }
 
-// setData patches the in-memory data object, updates the UI
-// accordingly and saves it. It is an async function because it may
-// need to trigger a re-render of the diagram.
-async function setData(patch, forceRender) {
+// migrateLegacyData converts old single-diagram storage to the new
+// multi-diagram model.
+function migrateLegacyData(legacyData) {
+    try {
+        const diagramName = legacyData.name || 'Imported Diagram';
+        const diagrams = {};
+        diagrams[diagramName] = legacyData;
+        localStorage.setItem("diagrams", JSON.stringify(diagrams));
+        localStorage.setItem("selectedDiagram", diagramName);
+        localStorage.removeItem("data");
+    } catch (e) {
+        console.error("Error migrating legacy data:", e);
+    }
+}
+
+// setData patches the in-memory data object, updates the UI accordingly and
+// saves it. It is an async function because it may need to trigger a re-render
+// of the diagram. forceRender can be used to force a re-render, and
+// isOpeningDiagram is used to indicate the setData operation is being done
+// for opening a diagram (not editing the current one).
+async function setData(patch, forceRender, isOpeningDiagram) {
     let oldData = data;
     data = Object.assign({}, data, patch);
 
-    if (!oldData || oldData.name !== data.name) {
+    const nameChanged = !oldData || oldData.name !== data.name;
+    const contentChanged = !oldData || oldData.content !== data.content;
+    if (nameChanged) {
         setName(data.name);
+        if (oldData && oldData.name !== data.name && !isOpeningDiagram) {
+            // New name means a new diagram was created. We set its last
+            // modified timestamp and show a notification.
+            data.lastModified = new Date().toISOString();
+            showNotification(`Created "${data.name}"`, true);
+        }
+    }
+    // If the name was kept but the content changed, update the last modified
+    // timestamp.
+    if (!nameChanged && contentChanged) {
+        data.lastModified = new Date().toISOString();
     }
 
     // If the content has changed, re-render the diagram and update the
     // editor.
-    if (forceRender || !oldData || oldData.content != data.content) {
+    if (forceRender || !oldData || oldData.content !== data.content) {
         await renderDiagram(withIconElements(data.content));
 
         if (monacoEditor && monacoEditor.getValue() !== data.content) {
@@ -114,7 +164,11 @@ async function setData(patch, forceRender) {
         setMode(data.mode);
     }
 
-    saveData(data);
+    // Debounce and defer the save operation.
+    clearTimeout(saveDataTimeout);
+    saveDataTimeout = setTimeout(() => {
+        saveData(data);
+    }, 0);
 }
 
 // loadAndSetData loads saved data and sets it. Useful when
@@ -129,15 +183,29 @@ function saveData(data) {
     // update based on the change we are making here.
     window.removeEventListener('hashchange', loadAndSetData);
     try {
+        const diagramName = data.name || 'Untitled diagram';
+        let diagrams = {};
+        try {
+            const diagramsStr = localStorage.getItem("diagrams");
+            if (diagramsStr) {
+                diagrams = JSON.parse(diagramsStr);
+            }
+        } catch (e) {
+            // Ignore parsing errors and start fresh.
+        }
+        diagrams[diagramName] = data;
+        localStorage.setItem("diagrams", JSON.stringify(diagrams));
+        localStorage.setItem("selectedDiagram", diagramName);
+
+        // Also update the hash for URL sharing.
         const json = JSON.stringify(data);
-        localStorage.setItem("data", json);
         const b64 = toB64(json);
         window.location.hash = b64;
     } catch (e) {
         // Ignore encoding errors.
     } finally {
-        // Only setup the hashchange listener after a timeout, to avoid
-        // triggering another update immediately.
+        // Deferring here helps prevent the hash update above from triggering a
+        // call to loadAndSetData.
         setTimeout(() => {
             window.addEventListener('hashchange', loadAndSetData);
         }, 0);
@@ -162,6 +230,7 @@ function setMode(mode) {
         appGrid.classList.replace('edit-mode', 'view-mode');
         editor.classList.add('hidden');
         if (diagramNameElem) {
+            diagramNameElem.blur();
             diagramNameElem.readOnly = true;
             diagramNameElem.classList.add('no-caret');
         }
@@ -280,52 +349,72 @@ monacoEditor.getDomNode().addEventListener('wheel', function(e) {
     }
 }, {passive: false});
 
-// Handle diagram name changes.
-document.getElementById('diagram-name').addEventListener('input', function(e) {
+// Handle diagram name changes on blur.
+document.getElementById('diagram-name').addEventListener('blur', function(e) {
     setData({name: e.target.value});
 });
 
 // App-wide keyboard shorcuts.
 document.addEventListener('keydown', async function(e) {
+    let editing = data.mode === "edit" &&
+        (monacoEditor.hasTextFocus() ||
+            document.activeElement == document.getElementById('diagram-name'));
+
     // Toggle editor visibility with Ctrl+E.
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'e') {
         e.preventDefault();
+        closeModals();
         setData({mode: data.mode === 'view' ? 'edit' : 'view', content: monacoEditor.getValue()});
     }
     // Share the diagram with Ctrl+S.
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
         e.preventDefault();
+        closeModals();
         share();
     }
     // Copy the diagram to the clipboard with Ctrl+C.
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'c') {
-        if (monacoEditor.hasTextFocus()) {
+        if (editing) {
             return
         }
         e.preventDefault();
+        closeModals();
         await setData({content: monacoEditor.getValue()});
         export_('png', true);
     }
     // Reset the diagram with Ctrl+Alt+R.
     if ((e.ctrlKey || e.metaKey) && e.altKey && e.key.toLowerCase() === 'r') {
         e.preventDefault();
-        closeHelp();
+        closeModals();
         setData(defaultData);
     }
     // Show help with ?.
     if (e.key === '?') {
-        if (data.mode === "edit" &&
-            (monacoEditor.hasTextFocus() ||
-                document.activeElement == document.getElementById('diagram-name'))) {
+        if (editing) {
             return
         };
+        e.preventDefault();
         showHelp();
     }
+    // Open library with Ctrl+Y.
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
+        e.preventDefault();
+        showLibrary();
+    }
+
+    // Open export with Ctrl+X.
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'x') {
+        if (editing) {
+            return
+        }
+        e.preventDefault();
+        showExport();
+    }
+
     // Hide any modals when Escape is pressed.
     if (e.key === 'Escape') {
         e.preventDefault();
-        closeHelp();
-        closeExportCopy();
+        closeModals();
     }
 });
 
@@ -337,11 +426,18 @@ document.getElementById('set-mode-view').addEventListener('click', function() {
     setData({mode: 'view', content: monacoEditor.getValue()});
 });
 
+function closeModals() {
+    closeHelp();
+    closeLibrary();
+    closeExport();
+}
+
 // Help.
 document.getElementById('open-help').addEventListener('click', showHelp);
 document.getElementById('close-help').addEventListener('click', closeHelp);
 
 function showHelp() {
+    closeModals();
     let modal = document.getElementById('help-modal');
     modal.style.display = modal.style.display === 'flex' ? 'none' : 'flex';
 }
@@ -350,60 +446,272 @@ function closeHelp() {
     document.getElementById('help-modal').style.display = 'none';
 }
 
-// Export/copy.
-['export', 'copy'].forEach(type => {
-    document.getElementById(type).addEventListener('contextmenu', function(ev) {
-        ev.preventDefault();
-    });
-    document.getElementById(type).addEventListener('mousedown', async function(ev) {
-        if (exporting) return;
+// Library.
+document.getElementById('library').addEventListener('click', showLibrary);
+document.getElementById('close-library').addEventListener('click', closeLibrary);
 
-        if (ev.button !== 2) {
-            await setData({content: monacoEditor.getValue()});
-            export_('png', type === 'copy');
-            return;
-        }
-        // Run asynchronously to prevent the overlay from intercepting the
-        // context menu click.
-        setTimeout(() => {
-            const scaleInput = document.getElementById('png-export-scale');
-            const scaleLabel = document.getElementById('png-export-scale-value');
-            if (scaleInput) scaleInput.value = data.pngScale || 2;
-            scaleLabel.textContent = scaleInput.value;
-
-            showExportCopy(type);
-        }, 0);
-    });
-});
-document.getElementById('close-export-copy').addEventListener('click', closeExportCopy);
-
-function showExportCopy(source) {
-    let modal = document.getElementById('export-copy-modal');
-    const title = modal.querySelector('h1');
-    const scaleWarning = document.getElementById('scale-warning');
-
-    const browserWarning = `<p>Browsers impose limits on the maximum size of
-images generated by Diagram. If you get an error, try reducing the scale.</p>`
-
-    if (source === 'copy') {
-        title.textContent = 'Copy diagram';
-        document.getElementById('export-svg').style.display = 'none';
-        document.getElementById('export-png').style.display = 'none';
-        document.getElementById('copy-png').style.display = 'inline-flex';
-        scaleWarning.innerHTML = `<p>The PNG scale also influences the Export function.</p>${browserWarning}`;
-    } else {
-        title.textContent = 'Export diagram';
-        document.getElementById('export-svg').style.display = 'inline-flex';
-        document.getElementById('export-png').style.display = 'inline-flex';
-        document.getElementById('copy-png').style.display = 'none';
-        scaleWarning.innerHTML = `<p>The PNG scale also influences the Copy function.</p>${browserWarning}`;
-    }
-
+async function showLibrary() {
+    closeModals();
+    await setData({content: monacoEditor.getValue()});
+    renderLibraryList();
+    let modal = document.getElementById('library-modal');
     modal.style.display = modal.style.display === 'flex' ? 'none' : 'flex';
 }
 
-function closeExportCopy() {
-    document.getElementById('export-copy-modal').style.display = 'none';
+function closeLibrary() {
+    document.getElementById('library-modal').style.display = 'none';
+}
+
+function formatTimestamp(ts) {
+    const fmt = new Intl.DateTimeFormat(undefined, {
+        year: "numeric",
+        month: "short",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false,
+    });
+    const parts = fmt.formatToParts(ts);
+    const map = Object.fromEntries(parts.map(p => [p.type, p.value]));
+    return `${map.month} ${map.day} ${map.year}, ${map.hour}:${map.minute}:${map.second}`;
+}
+
+function renderLibraryList() {
+    const listContainer = document.getElementById('library-list');
+    // Clear the container by removing all children.
+    while (listContainer.firstChild) {
+        listContainer.removeChild(listContainer.firstChild);
+    }
+
+    try {
+        const diagramsStr = localStorage.getItem("diagrams");
+        if (!diagramsStr) {
+            const emptyDiv = document.createElement('div');
+            emptyDiv.className = 'library-empty';
+            emptyDiv.textContent = 'No diagrams saved yet.';
+            listContainer.appendChild(emptyDiv);
+            return;
+        }
+
+        const diagrams = JSON.parse(diagramsStr);
+        const selectedDiagram = localStorage.getItem("selectedDiagram");
+        const diagramNames = Object.keys(diagrams);
+
+        if (diagramNames.length === 0) {
+            const emptyDiv = document.createElement('div');
+            emptyDiv.className = 'library-empty';
+            emptyDiv.textContent = 'No diagrams saved yet.';
+            listContainer.appendChild(emptyDiv);
+            return;
+        }
+
+        // Separate selected diagram from others.
+        const selected = diagramNames.filter(name => name === selectedDiagram);
+        const others = diagramNames.filter(name => name !== selectedDiagram);
+
+        // Sort others by lastModified (newest first).
+        others.sort((a, b) => {
+            const aTime = diagrams[a]?.lastModified ? new Date(diagrams[a].lastModified) : new Date(0);
+            const bTime = diagrams[b]?.lastModified ? new Date(diagrams[b].lastModified) : new Date(0);
+            return bTime - aTime;
+        });
+
+        // Render selected diagram first if it exists.
+        if (selected.length > 0) {
+            const currentLabel = document.createElement('p');
+            currentLabel.textContent = 'Current diagram';
+            currentLabel.classList.add('library-list-section-label');
+            listContainer.appendChild(currentLabel);
+
+            selected.forEach(name => {
+                appendDiagramItem(listContainer, name, diagrams[name]);
+            });
+
+            // Only add separator if there are other diagrams.
+            if (others.length > 0) {
+                const hr = document.createElement('hr');
+                listContainer.appendChild(hr);
+
+                const othersLabel = document.createElement('p');
+                othersLabel.textContent = 'Saved diagrams';
+                othersLabel.classList.add('library-list-section-label');
+                listContainer.appendChild(othersLabel);
+            }
+        }
+
+        // Render other diagrams sorted by date.
+        others.forEach(name => {
+            appendDiagramItem(listContainer, name, diagrams[name]);
+        });
+    } catch (e) {
+        console.error("Error rendering library list:", e);
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'library-empty';
+        errorDiv.textContent = 'Error loading diagrams.';
+        listContainer.appendChild(errorDiv);
+    }
+}
+
+function appendDiagramItem(container, name, diagramData) {
+    const item = document.createElement('div');
+    item.className = 'library-item';
+
+    const infoDiv = document.createElement('div');
+    infoDiv.className = 'library-item-info';
+
+    const nameSpan = document.createElement('span');
+    nameSpan.className = 'library-item-name';
+    nameSpan.textContent = name;
+    nameSpan.title = name;
+
+    const timeSpan = document.createElement('span');
+    timeSpan.className = 'library-item-timestamp';
+    if (diagramData && diagramData.lastModified) {
+        const lastModified = new Date(diagramData.lastModified);
+        timeSpan.textContent = `Last modified ${formatTimestamp(lastModified)}`;
+    } else {
+        timeSpan.textContent = 'Unknown';
+    }
+
+    infoDiv.appendChild(nameSpan);
+    infoDiv.appendChild(timeSpan);
+
+    const buttonsGroup = document.createElement('div');
+    buttonsGroup.className = 'dg-button-group';
+
+    const deleteButton = document.createElement('button');
+    deleteButton.className = 'dg-button';
+    deleteButton.title = 'Delete diagram';
+    const deleteIcon = document.createElement('span');
+    deleteIcon.className = 'material-symbols-rounded';
+    deleteIcon.textContent = 'delete';
+    deleteButton.appendChild(deleteIcon);
+    deleteButton.addEventListener('click', () => {
+        if (confirm(`Are you sure you want to delete "${name}"?`)) {
+            deleteDiagram(name);
+            closeLibrary();
+            renderLibraryList();
+        }
+    });
+
+    const openButton = document.createElement('button');
+    openButton.className = 'dg-button';
+    openButton.title = 'Open diagram';
+    const openIcon = document.createElement('span');
+    openIcon.className = 'material-symbols-rounded';
+    openIcon.textContent = 'open_in_browser';
+    openButton.appendChild(openIcon);
+    openButton.addEventListener('click', () => {
+        openDiagram(name);
+        closeLibrary();
+    });
+
+    buttonsGroup.appendChild(deleteButton);
+    buttonsGroup.appendChild(openButton);
+
+    item.appendChild(infoDiv);
+    item.appendChild(buttonsGroup);
+    container.appendChild(item);
+}
+
+function openDiagram(name) {
+    try {
+        const diagramsStr = localStorage.getItem("diagrams");
+        if (!diagramsStr) return;
+
+        const diagrams = JSON.parse(diagramsStr);
+        const diagramData = diagrams[name];
+
+        if (!diagramData) return;
+
+        localStorage.setItem("selectedDiagram", name);
+        // Always open diagrams in view mode, even if they were last saved in
+        // edit mode.
+        diagramData.mode = "view";
+        setData(diagramData, true, true);
+        showNotification(`Opened "${name}"`, true);
+    } catch (e) {
+        console.error("Error opening diagram:", e);
+    }
+}
+
+function deleteDiagram(name) {
+    try {
+        const diagramsStr = localStorage.getItem("diagrams");
+        if (!diagramsStr) return;
+
+        const diagrams = JSON.parse(diagramsStr);
+        const wasSelected = localStorage.getItem("selectedDiagram") === name;
+        let newSelected = null;
+        delete diagrams[name];
+
+        if (Object.keys(diagrams).length === 0) {
+            localStorage.removeItem("diagrams");
+            localStorage.removeItem("selectedDiagram");
+            // Open default diagram when the last diagram is deleted.
+            if (wasSelected) {
+                setData(defaultData, true);
+                showNotification(`Deleted "${name}", opened "Welcome to Diagrama"`, true);
+            } else {
+                showNotification(`Deleted "${name}"`, true);
+            }
+        } else {
+            localStorage.setItem("diagrams", JSON.stringify(diagrams));
+
+            // If the deleted diagram was the selected one, select a different one.
+            if (wasSelected) {
+                const remainingNames = Object.keys(diagrams);
+                if (remainingNames.length > 0) {
+                    newSelected = remainingNames[0];
+                    localStorage.setItem("selectedDiagram", newSelected);
+                    openDiagram(newSelected);
+                }
+            }
+
+            // Show appropriate notification based on whether another diagram was opened.
+            if (wasSelected && newSelected) {
+                showNotification(`Deleted "${name}", opened "${newSelected}"`, true);
+            } else {
+                showNotification(`Deleted "${name}"`, true);
+            }
+        }
+    } catch (e) {
+        console.error("Error deleting diagram:", e);
+    }
+}
+
+// Export/copy button handlers.
+document.getElementById("copy").addEventListener('click', async function(ev) {
+    if (exporting) return;
+    await setData({content: monacoEditor.getValue()});
+    export_('png', true);
+});
+
+
+// Settings button to open export/copy settings modal.
+document.getElementById('export').addEventListener('click', function() {
+    const scaleInput = document.getElementById('png-export-scale');
+    const scaleLabel = document.getElementById('png-export-scale-value');
+    if (scaleInput) scaleInput.value = data.pngScale || 2;
+    scaleLabel.textContent = scaleInput.value;
+
+    showExport();
+});
+
+document.getElementById('close-export').addEventListener('click', closeExport);
+
+function showExport() {
+    closeModals();
+    let modal = document.getElementById('export-modal');
+    document.getElementById('export-svg').style.display = 'inline-flex';
+    document.getElementById('export-png').style.display = 'inline-flex';
+    document.getElementById('copy-png').style.display = 'inline-flex';
+    modal.style.display = modal.style.display === 'flex' ? 'none' : 'flex';
+}
+
+function closeExport() {
+    document.getElementById('export-modal').style.display = 'none';
 }
 
 // Update the PNG scale when the input changes.
@@ -420,7 +728,7 @@ document.getElementById('png-export-scale').addEventListener('input', async func
 ["export-png", "export-svg", "copy-png"].forEach(type => {
     document.getElementById(type).addEventListener("click", function(ev) {
         export_(type === 'export-svg' ? "svg" : "png", type === "copy-png");
-        closeExportCopy();
+        closeExport();
     });
 });
 
@@ -447,39 +755,36 @@ async function export_(formatID, clipboard) {
 
     // Show loading indicator during PNG exports, and disable buttons to avoid
     // multiple exports at the same time.
-    let doneCallback;
-    if (formatID === 'png') {
-        exporting = true;
+    exporting = true;
 
-        let opButton = clipboard ? document.getElementById('copy') : document.getElementById('export');
-        ['export', 'copy'].forEach(type => {
-            document.getElementById(type).disabled = true;
-        });
-        const icon = opButton ? opButton.querySelector('.material-symbols-rounded') : null;
-        const originalIcon = icon ? icon.textContent : null;
-        if (icon) {
-            icon.textContent = 'progress_activity';
-            icon.classList.add('icon-spinner');
-        }
-        doneCallback = (err) => {
-            if (icon && originalIcon) {
-                icon.textContent = originalIcon;
-                icon.classList.remove('icon-spinner');
-            }
-            ['export', 'copy'].forEach(type => {
-                document.getElementById(type).disabled = false;
-            });
-            if (clipboard) {
-                let msg = !err ?
-                    "Diagram copied to the clipboard" :
-                    "Error copying diagram to the clipboard";
-                showNotification(msg, !err);
-            } else {
-                if (err) showNotification("Error exporting diagram", false);
-            }
-            exporting = false;
-        };
+    let opButton = clipboard ? document.getElementById('copy') : document.getElementById('export');
+    ['export', 'copy'].forEach(type => {
+        document.getElementById(type).disabled = true;
+    });
+    const icon = opButton ? opButton.querySelector('.material-symbols-rounded') : null;
+    const originalIcon = icon ? icon.textContent : null;
+    if (icon) {
+        icon.textContent = 'progress_activity';
+        icon.classList.add('icon-spinner');
     }
+    let doneCallback = (err) => {
+        if (icon && originalIcon) {
+            icon.textContent = originalIcon;
+            icon.classList.remove('icon-spinner');
+        }
+        ['export', 'copy'].forEach(type => {
+            document.getElementById(type).disabled = false;
+        });
+        if (clipboard) {
+            let msg = !err ?
+                "Diagram copied to the clipboard" :
+                "Error copying diagram to the clipboard";
+            showNotification(msg, !err);
+        } else {
+            if (err) showNotification("Error exporting diagram", false);
+        }
+        exporting = false;
+    };
 
     let name = document.getElementById('diagram-name').value.trim() || 'Diagrama';
     if (!name.toLowerCase().endsWith(format.ext)) name += format.ext;
@@ -507,7 +812,7 @@ async function share() {
 
 async function showNotification(msg, ok) {
     const overlay = document.getElementById('notification-overlay');
-    overlay.innerHTML = msg;
+    overlay.textContent = msg;
     ok ? overlay.classList.remove('error') : overlay.classList.add('error');
     overlay.classList.add('show');
 
@@ -548,7 +853,14 @@ async function renderDiagram(code) {
             enablePanZoom(svgElement);
         }
     } catch (e) {
-        element.innerHTML = '<pre id="diagram-error">' + e + '</pre>';
+        // Clear the element and add error message.
+        while (element.firstChild) {
+            element.removeChild(element.firstChild);
+        }
+        const errorPre = document.createElement('pre');
+        errorPre.id = 'diagram-error';
+        errorPre.textContent = String(e);
+        element.appendChild(errorPre);
     }
 }
 
@@ -764,7 +1076,7 @@ async function pngDownload(svgElem, fileName, clipboard, done) {
     }
 
     const img = new window.Image();
-    img.onload = notifyDone(function() {
+    img.onload = notifyDone(async function() {
         const canvas = document.createElement("canvas");
         canvas.width = viewBoxWidth * data.pngScale;
         canvas.height = viewBoxHeight * data.pngScale;
@@ -788,12 +1100,12 @@ async function pngDownload(svgElem, fileName, clipboard, done) {
                     URL.revokeObjectURL(a.href);
                 }, 100);
             }
-        }, "image/png"));
+        }));
     });
     img.src = "data:image/svg+xml;base64," + toB64(svgString);
 }
 
-async function svgDownload(svgElem, fileName, clipboard) {
+async function svgDownload(svgElem, fileName, clipboard, done) {
     // Copying the SVG to the clipboard is not supported/mostly useless.
     if (clipboard) {
         console.error("Copying SVG to the clipboard is not supported");
@@ -814,6 +1126,7 @@ async function svgDownload(svgElem, fileName, clipboard) {
     setTimeout(() => {
         document.body.removeChild(a);
         URL.revokeObjectURL(a.href);
+        done();
     }, 100);
 }
 
