@@ -3,7 +3,7 @@ import {toB64} from './b64.js';
 
 export async function pngExport(data, svgElem, fileName, clipboard, done) {
     const clone = svgElem.cloneNode(true);
-    await injectStylesheet(clone);
+    await injectStylesheet(clone, hasIconDirectives(data.content));
     clone.removeAttribute("width");
     clone.removeAttribute("height");
     const bbox = svgElem.getBBox();

@@ -59,7 +59,14 @@ vendor_material_symbols_font() {
 build() {
     step "Rebuilding diagrama..."
     rm -rf dist; mkdir -p dist
-    cp -r src/index.html src/manifest.json src/sw.js src/*.png src/*.svg dist
+    cp -r \
+        src/index.html \
+        src/manifest.json \
+        src/material-symbols \
+        src/sw.js \
+        src/*.png \
+        src/*.svg \
+    dist
     ./node_modules/esbuild/bin/esbuild src/main.js --bundle --minify --sourcemap --loader:.ttf=dataurl --outfile=dist/diagrama.js --allow-overwrite
 
     # If in dev mode, move all assets to the /diagrama subfolder.
