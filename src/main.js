@@ -4,7 +4,6 @@ import {renderDiagram} from './diagram.js';
 import {withIconElements} from './icons.js';
 import {pngExport, svgExport} from './export.js';
 
-
 import './diagrama.css';
 
 const defaultContent = `---
