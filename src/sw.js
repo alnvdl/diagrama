@@ -1,6 +1,7 @@
 const CACHE_NAME = "diagrama-cache-v1";
 
-// Remember to add new URLs in case you introduce new files in src.
+// These are the files under the produced dist folder. You shouldn't have to
+// change this unless the build process changes.
 const OFFLINE_URLS = [
     "/diagrama",
     "index.html",

@@ -1,6 +1,9 @@
-import * as monaco from 'monaco-editor';
-import mermaid from 'mermaid';
-import elkLayouts from '@mermaid-js/layout-elk';
+import {fromB64, toB64} from './b64.js';
+import {initEditor, setEditorFontSize} from './editor.js';
+import {renderDiagram} from './diagram.js';
+import {withIconElements} from './icons.js';
+import {pngExport, svgExport} from './export.js';
+
 
 import './diagrama.css';
 
@@ -28,52 +31,25 @@ flowchart TB
     step5 --> step8
     step6 --> step7`;
 const defaultScale = 2; // Good results with reasonable file sizes.
-const defaultData = {
-    content: defaultContent.trim(),
-    name: 'Welcome to Diagrama',
-    pngScale: defaultScale,
-    mode: 'view',
+const defaultDiagramData = () => {
+    return {
+        content: defaultContent.trim(),
+        name: 'Welcome to Diagrama',
+        pngScale: defaultScale,
+        mode: 'view',
+        lastModified: new Date().toISOString()
+    }
 };
-const defaultDiagramData = () => Object.assign({}, defaultData, {lastModified: new Date().toISOString()});
 
 let data = null;
 let exporting = false;
-
-function fromB64(str) {
-    const bytes = Uint8Array.from(atob(str), c => c.charCodeAt(0));
-    return new TextDecoder().decode(bytes);
-}
-
-function toB64(str) {
-    const bytes = new TextEncoder().encode(str);
-    let binary = '';
-    bytes.forEach((b) => binary += String.fromCharCode(b));
-    return btoa(binary);
-}
-
-// Icons can be included with !!icon-name!!, and we translate them
-// right before rendering.
-const iconRegex = /!!([a-z0-9-_]+)!!/i;
-
-const iconsStylesheet = "./material-symbols/font.css";
-function hasIconDirectives(content) {
-    return iconRegex.test(content);
-}
-
-function withIconElements(content) {
-    return content.replace(
-        new RegExp(iconRegex.source, 'gi'),
-        (_, value) => `<span class="material-symbols-rounded">${value}</span>`);
-}
-
 let notificationOverlayTimeout;
 let saveDataTimeout;
 
-// loadData tries to load diagram data in the following order until one
-// attempt succeeds: base64-encoded JSON in URL hash, selected diagram
-// from new storage model, legacy "data" key in local storage, default
-// template. It always returns a valid data object ready to be used with
-// updateData.
+// loadData tries to load diagram data in the following order until one attempt
+// succeeds: base64-encoded JSON in URL hash, selected diagram in local
+// storage, legacy "data" key in local storage, default template. It always
+// returns a valid data object ready to be used with updateData.
 function loadData() {
     try {
         const hash = window.location.hash.replace(/^#/, '');
@@ -153,7 +129,7 @@ async function setData(patch, forceRender, isOpeningDiagram) {
     // If the content has changed, re-render the diagram and update the
     // editor.
     if (forceRender || !oldData || oldData.content !== data.content) {
-        await renderDiagram(withIconElements(data.content));
+        await renderDiagram(withIconElements(data.content), document.querySelector('#diagram'));
 
         if (monacoEditor && monacoEditor.getValue() !== data.content) {
             const pos = monacoEditor.getPosition();
@@ -270,87 +246,6 @@ function setName(name) {
     document.title = prefix + name.trim();
 }
 
-// Initialize Mermaid.
-mermaid.initialize({
-    fontFamily: "system-ui",
-    theme: 'neutral'
-});
-mermaid.registerLayoutLoaders(elkLayouts);
-window.mermaid = mermaid; // Expose for other scripts.
-
-// Initialize Monaco.
-let monacoEditor;
-initLang(monaco);
-initTheme(monaco);
-
-monacoEditor = monaco.editor.create(document.getElementById('editor'), {
-    guides: {highlightActiveIndentation: false, indentation: false},
-    language: 'mermaid',
-    fontFamily: 'monospace',
-    minimap: {enabled: false},
-    multiCursorModifier: "ctrlCmd",
-    overviewRulerLanes: 0,
-    renderWhitespace: "none",
-    scrollBeyondLastLine: false,
-    theme: "diagrama-dark",
-    value: data?.content || "",
-    automaticLayout: true,
-    lineNumbersMinChars: 3,
-});
-setEditorFontSize(localStorage.getItem("fontSizeOverride"));
-
-// Editor-specific keyboard shortcuts.
-monaco.editor.addKeybindingRules([{
-    keybinding: monaco.KeyCode.F2,
-    command: 'editor.action.selectHighlights',
-    when: null,
-}, {
-    keybinding: monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyK,
-    command: 'editor.action.addSelectionToNextFindMatch',
-    when: null,
-}, {
-    keybinding: monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyP,
-    command: 'editor.action.quickCommand',
-    when: null,
-}, {
-    keybinding: monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyD,
-    command: 'editor.action.deleteLines',
-    when: null,
-}, {
-    keybinding: monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyM,
-    command: 'editor.action.jumpToBracket',
-    when: null,
-}, {
-    keybinding: monaco.KeyMod.Shift | monaco.KeyMod.Alt | monaco.KeyCode.UpArrow,
-    command: 'editor.action.insertCursorAbove',
-    when: null,
-}, {
-    keybinding: monaco.KeyMod.Shift | monaco.KeyMod.Alt | monaco.KeyCode.DownArrow,
-    command: 'editor.action.insertCursorBelow',
-    when: null,
-}]);
-
-// Update data on Ctrl+Enter.
-monacoEditor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, function() {
-    setData({content: monacoEditor.getValue()}, true);
-});
-// Go back to auto-font-size on Ctrl+Shift+0.
-monacoEditor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.Digit0, function() {
-    localStorage.removeItem("fontSizeOverride");
-    setEditorFontSize();
-});
-
-// Set font size on Ctrl+scroll.
-monacoEditor.getDomNode().addEventListener('wheel', function(e) {
-    if (monacoEditor && e.ctrlKey) {
-        e.preventDefault();
-        let fontSize = monacoEditor.getOption(monaco.editor.EditorOption.fontSize);
-        fontSize += e.deltaY < 0 ? 1 : -1;
-        localStorage.setItem("fontSizeOverride", fontSize);
-        setEditorFontSize(fontSize);
-    }
-}, {passive: false});
-
 // Handle diagram name changes on blur.
 document.getElementById('diagram-name').addEventListener('blur', function(e) {
     setData({name: e.target.value});
@@ -449,7 +344,7 @@ function closeHelp() {
 }
 
 // Library.
-document.getElementById('library').addEventListener('click', showLibrary);
+document.getElementById('open-library').addEventListener('click', showLibrary);
 document.getElementById('close-library').addEventListener('click', closeLibrary);
 
 async function showLibrary() {
@@ -683,15 +578,9 @@ function deleteDiagram(name) {
     }
 }
 
-// Export/copy button handlers.
-document.getElementById("copy").addEventListener('click', async function(ev) {
-    if (exporting) return;
-    await setData({content: monacoEditor.getValue()});
-    export_('png', true);
-});
+// Export/copy.
+document.getElementById('close-export').addEventListener('click', closeExport);
 
-
-// Settings button to open export/copy settings modal.
 document.getElementById('export').addEventListener('click', function() {
     const scaleInput = document.getElementById('png-export-scale');
     const scaleLabel = document.getElementById('png-export-scale-value');
@@ -700,8 +589,6 @@ document.getElementById('export').addEventListener('click', function() {
 
     showExport();
 });
-
-document.getElementById('close-export').addEventListener('click', closeExport);
 
 function showExport() {
     closeModals();
@@ -715,6 +602,13 @@ function showExport() {
 function closeExport() {
     document.getElementById('export-modal').style.display = 'none';
 }
+
+document.getElementById("copy").addEventListener('click', async function(ev) {
+    if (exporting) return;
+    await setData({content: monacoEditor.getValue()});
+    export_('png', true);
+});
+
 
 // Update the PNG scale when the input changes.
 document.getElementById('png-export-scale').addEventListener('input', async function(e) {
@@ -739,8 +633,8 @@ document.getElementById('png-export-scale').addEventListener('input', async func
 // of triggering a download.
 async function export_(formatID, clipboard) {
     let formats = {
-        "png": {ext: ".png", fn: pngDownload},
-        "svg": {ext: ".svg", fn: svgDownload}
+        "png": {ext: ".png", fn: pngExport},
+        "svg": {ext: ".svg", fn: svgExport}
     }
     let format = formats[formatID];
     if (!format) {
@@ -790,10 +684,10 @@ async function export_(formatID, clipboard) {
 
     let name = document.getElementById('diagram-name').value.trim() || 'Diagrama';
     if (!name.toLowerCase().endsWith(format.ext)) name += format.ext;
-    format.fn(svgElem, name, clipboard, doneCallback);
+    format.fn(data, svgElem, name, clipboard, doneCallback);
 }
 
-// Share button.
+// Share.
 document.getElementById('share').addEventListener('click', share);
 
 async function share() {
@@ -826,324 +720,27 @@ async function showNotification(msg, ok) {
 
 // Auto-adjust editor font on resize.
 new ResizeObserver(() => {
-    setEditorFontSize(localStorage.getItem("fontSizeOverride"))
+    setEditorFontSize(monacoEditor, localStorage.getItem("fontSizeOverride"))
 }).observe(document.getElementById("editor"));
 
 // Set font sizes on other open editors.
 window.addEventListener("storage", ev => {
     if (ev.key == "fontSizeOverride") {
-        setEditorFontSize(ev.newValue);
+        setEditorFontSize(monacoEditor, ev.newValue);
     }
 });
 
+let monacoEditor = initEditor({
+    element: document.getElementById("editor"),
+    initialFontSize: localStorage.getItem("fontSizeOverride"),
+    onContentChanged: (content) => setData({content}, true),
+    onFontSizeChanged: (fontSize) => {
+        if (fontSize === null) {
+            localStorage.removeItem("fontSizeOverride");
+            return;
+        }
+        localStorage.setItem("fontSizeOverride", fontSize);
+    },
+});
 loadAndSetData();
-
-async function renderDiagram(code) {
-    let element = document.querySelector('#diagram');
-    try {
-        const {svg} = await window.mermaid.render('diagram-svg', code)
-        element.innerHTML = svg;
-        const svgElement = element.querySelector('#diagram-svg');
-        if (svgElement) {
-            // Make SVG fill its parent without scrollbars.
-            svgElement.style.width = '100%';
-            svgElement.style.height = '100%';
-            svgElement.style.maxWidth = '100%';
-            svgElement.style.maxHeight = '100%';
-            svgElement.style.display = 'block';
-            svgElement.style.overflow = 'hidden';
-            enablePanZoom(svgElement);
-        }
-    } catch (e) {
-        // Clear the element and add error message.
-        while (element.firstChild) {
-            element.removeChild(element.firstChild);
-        }
-        const errorPre = document.createElement('pre');
-        errorPre.id = 'diagram-error';
-        errorPre.textContent = String(e);
-        element.appendChild(errorPre);
-    }
-}
-
-const minFontSize = 9;
-// The line height proportion is the golden ratio, which happened
-// to produce a result that the author likes.
-const lineHeightRatio = 1.618;
-
-// setEditorFontSize sets the font size and line height based on
-// fontSize. Omit fontSize (or pass null) to enable automatic font
-// sizes.
-function setEditorFontSize(fontSize) {
-    if (!monacoEditor) return;
-
-    if (fontSize > 0) {
-        fontSize = Math.max(fontSize, minFontSize);
-        let lineHeight = Math.floor(fontSize * lineHeightRatio);
-        monacoEditor.updateOptions({fontSize, lineHeight});
-        return;
-    }
-
-    // If fontSize is not defined, set it automatically.
-    const editor = document.getElementById("editor");
-    // The number 55 was determined as being a decent match calculating
-    // the font size based upon the preferences of the author.
-    fontSize = Math.max(Math.floor(editor.offsetWidth / 55), 9);
-    let lineHeight = Math.floor(fontSize * lineHeightRatio);
-    monacoEditor.updateOptions({fontSize, lineHeight});
-}
-
-function initLang(monacoEditor) {
-    monacoEditor.languages.register({id: 'mermaid'});
-
-    monacoEditor.languages.setMonarchTokensProvider('mermaid', {
-        defaultToken: '',
-        tokenPostfix: '.mermaid',
-        tokenizer: {
-            root: [
-                // Front matter at the very start of the document.
-                [/^---\s*$/, {token: 'front-matter', next: '@frontMatter'}],
-
-                // Comments.
-                [/^\s*%%.*$/, 'comment'],
-
-                // Keywords with optional -beta or -v<number> suffix.
-                [
-                    /\b(flowchart|sequenceDiagram|classDiagram|stateDiagram|erDiagram|journey|gantt|pie|quadrantChart|requirementDiagram|gitGraph|C4Context|mindmap|timeline|zenuml|sankey|xychart|block|packet|kanban|architecture|radar|treemap)(-beta|-v\d+)?\b/,
-                    'keyword'
-                ],
-            ],
-
-            // Front matter state: everything is 'front-matter' until closing ---
-            frontMatter: [
-                [/^---\s*$/, {token: 'front-matter', next: '@pop'}],
-                [/.*$/, 'front-matter'],
-            ],
-        },
-    });
-
-    monacoEditor.languages.setLanguageConfiguration('mermaid', {
-        comments: {
-            lineComment: '%%',
-        },
-        brackets: [
-            ['{', '}'],
-            ['[', ']'],
-            ['(', ')'],
-        ],
-        folding: {
-            offSide: true
-        }
-    });
-};
-
-function initTheme(monaco) {
-    monaco.editor.defineTheme("diagrama-dark", {
-        base: "vs-dark",
-        inherit: true,
-        // These colors are based on the Monokai Dimmed theme:
-        // https://github.com/microsoft/vscode/blob/e42d3b2c535d6a9ab9bd9c4d998f1d0fa96ceb98/extensions/theme-monokai-dimmed/themes/dimmed-monokai-color-theme.json
-        "colors": {
-            "editor.background": "#1e1e1e",
-            "editor.foreground": "#c5c8c6",
-            "editor.selectionBackground": "#676b7180",
-            "editor.selectionHighlightBackground": "#575b6180",
-            "editor.lineHighlightBackground": "#303030",
-            "editorLineNumber.foreground": "#3f3f3f",
-            "editorLineNumber.activeForeground": "#6f6f6f",
-            "editor.wordHighlightBackground": "#4747a180",
-            "editor.wordHighlightStrongBackground": "#6767ce80",
-            "editorCursor.foreground": "#c07020",
-            "editorWhitespace.foreground": "#505037",
-            "editorIndentGuide.background1": "#505037",
-            "editorIndentGuide.activeBackground1": "#707057",
-        },
-        rules: [{
-            "token": "comment.mermaid",
-            "fontStyle": "",
-            "foreground": "#9A9B99"
-        }, {
-            "token": "keyword.mermaid",
-            "fontStyle": "bold",
-            "foreground": "#CE6700"
-        }, {
-            "token": "front-matter.mermaid",
-            "fontStyle": "italic",
-            "foreground": "#6089B4"
-        }],
-    });
-}
-
-function enablePanZoom(svg) {
-    if (!svg) return;
-    let isPanning = false;
-    let start = {x: 0, y: 0};
-    let viewBox = svg.viewBox.baseVal;
-    let last = {x: viewBox.x, y: viewBox.y, w: viewBox.width, h: viewBox.height};
-    svg.style.cursor = 'grab';
-
-    function onMouseMove(e) {
-        if (!isPanning) return;
-        const rect = svg.getBoundingClientRect();
-        // Calculate the actual rendered SVG area, accounting for
-        // preserveAspectRatio.
-        let vbAspect = viewBox.width / viewBox.height;
-        let rectAspect = rect.width / rect.height;
-        let renderWidth = rect.width;
-        let renderHeight = rect.height;
-        if (rectAspect > vbAspect) {
-            renderWidth = rect.height * vbAspect;
-        } else if (rectAspect < vbAspect) {
-            renderHeight = rect.width / vbAspect;
-        }
-        let dx = (e.clientX - start.x) * viewBox.width / renderWidth;
-        let dy = (e.clientY - start.y) * viewBox.height / renderHeight;
-        viewBox.x = last.x - dx;
-        viewBox.y = last.y - dy;
-    }
-    function onMouseUp() {
-        isPanning = false;
-        svg.style.cursor = 'grab';
-        svg.style.userSelect = '';
-        window.removeEventListener('mousemove', onMouseMove);
-        window.removeEventListener('mouseup', onMouseUp);
-    }
-    svg.addEventListener('mousedown', function(e) {
-        e.preventDefault(); // Prevent text selection and drag.
-        isPanning = true;
-        start.x = e.clientX;
-        start.y = e.clientY;
-        last.x = viewBox.x;
-        last.y = viewBox.y;
-        svg.style.cursor = 'grabbing';
-        svg.style.userSelect = 'none';
-        window.addEventListener('mousemove', onMouseMove);
-        window.addEventListener('mouseup', onMouseUp);
-    });
-    svg.addEventListener('mouseleave', function() {
-        isPanning = false;
-        svg.style.cursor = 'grab';
-        svg.style.userSelect = '';
-        window.removeEventListener('mousemove', onMouseMove);
-        window.removeEventListener('mouseup', onMouseUp);
-    });
-    svg.addEventListener('wheel', function(e) {
-        e.preventDefault();
-        const rect = svg.getBoundingClientRect();
-        let scale = e.deltaY < 0 ? 0.9 : 1.1;
-        let mx = e.offsetX * viewBox.width / rect.width + viewBox.x;
-        let my = e.offsetY * viewBox.height / rect.height + viewBox.y;
-        let newW = viewBox.width * scale;
-        let newH = viewBox.height * scale;
-        viewBox.x = mx - (mx - viewBox.x) * scale;
-        viewBox.y = my - (my - viewBox.y) * scale;
-        viewBox.width = newW;
-        viewBox.height = newH;
-    }, {passive: false});
-}
-
-async function pngDownload(svgElem, fileName, clipboard, done) {
-    const clone = svgElem.cloneNode(true);
-    await injectStylesheet(clone);
-    clone.removeAttribute("width");
-    clone.removeAttribute("height");
-    const bbox = svgElem.getBBox();
-    // A bit of margin to prevent the diagram from touching the limits
-    // of the image.
-    const margin = 2;
-    const viewBoxX = Math.floor(bbox.x - margin);
-    const viewBoxY = Math.floor(bbox.y - margin);
-    const viewBoxWidth = Math.ceil(bbox.width + 2 * margin);
-    const viewBoxHeight = Math.ceil(bbox.height + 2 * margin);
-
-    clone.setAttribute("viewBox", `${viewBoxX} ${viewBoxY} ${viewBoxWidth} ${viewBoxHeight}`);
-    clone.setAttribute("width", viewBoxWidth);
-    clone.setAttribute("height", viewBoxHeight);
-
-    // Serializing to base64 avoids tainting the canvas if there are
-    // links or images embedded in the diagram.
-    let svgString = new XMLSerializer().serializeToString(clone);
-    svgString = `<?xml version="1.0" encoding="UTF-8"?>` + svgString;
-
-    let notifyDone = function(fn) {
-        return async function(...args) {
-            try {
-                await fn(...args);
-                done();
-            } catch (e) {
-                console.error(e);
-                done(e);
-            }
-        }
-    }
-
-    const img = new window.Image();
-    img.onload = notifyDone(async function() {
-        const canvas = document.createElement("canvas");
-        canvas.width = viewBoxWidth * data.pngScale;
-        canvas.height = viewBoxHeight * data.pngScale;
-        const ctx = canvas.getContext("2d");
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.setTransform(data.pngScale, 0, 0, data.pngScale, 0, 0);
-        ctx.drawImage(img, 0, 0);
-        canvas.toBlob(notifyDone(async function(blob) {
-            if (clipboard) {
-                await navigator.clipboard.write([
-                    new ClipboardItem({"image/png": blob})
-                ]);
-            } else {
-                const a = document.createElement("a");
-                a.href = URL.createObjectURL(blob);
-                a.download = fileName;
-                document.body.appendChild(a);
-                a.click();
-                setTimeout(() => {
-                    document.body.removeChild(a);
-                    URL.revokeObjectURL(a.href);
-                }, 100);
-            }
-        }));
-    });
-    img.src = "data:image/svg+xml;base64," + toB64(svgString);
-}
-
-async function svgDownload(svgElem, fileName, clipboard, done) {
-    // Copying the SVG to the clipboard is not supported/mostly useless.
-    if (clipboard) {
-        console.error("Copying SVG to the clipboard is not supported");
-        return;
-    }
-
-    // Clone SVG to avoid touching the DOM.
-    const clone = svgElem.cloneNode(true);
-    await injectStylesheet(clone);
-
-    const svgData = new XMLSerializer().serializeToString(clone);
-    const blob = new Blob([svgData], {type: "image/svg+xml;charset=utf-8"});
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = fileName;
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(() => {
-        document.body.removeChild(a);
-        URL.revokeObjectURL(a.href);
-        done();
-    }, 100);
-}
-
-// injectStylesheet inserts an ad-hoc stylesheet to better render the diagram
-// when exporting it.
-async function injectStylesheet(svg) {
-    let cssText = ["#diagram-svg a { color: inherit; text-decoration: underline; }"];
-
-    if (hasIconDirectives(data.content)) {
-        cssText.push("#diagram-svg .material-symbols-rounded { vertical-align: text-bottom; }");
-        cssText.push(await fetch(iconsStylesheet).then(res => res.text()));
-    }
-
-    const style = document.createElementNS("http://www.w3.org/2000/svg", "style");
-    style.textContent = cssText.join("\n");
-    svg.insertBefore(style, svg.firstChild);
-}
 
