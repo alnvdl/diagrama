@@ -34,6 +34,8 @@ const defaultData = {
     pngScale: defaultScale,
     mode: 'view',
 };
+const defaultDiagramData = () => Object.assign({}, defaultData, {lastModified: new Date().toISOString()});
+
 let data = null;
 let exporting = false;
 
@@ -77,7 +79,7 @@ function loadData() {
         const hash = window.location.hash.replace(/^#/, '');
         if (!hash) throw new Error("no data in hash");
         const json = fromB64(hash);
-        return Object.assign({}, defaultData, JSON.parse(json));
+        return Object.assign(defaultDiagramData(), JSON.parse(json));
     } catch (e) {
         try {
             // Try loading the selected diagram from local storage.
@@ -87,7 +89,7 @@ function loadData() {
                 const diagrams = JSON.parse(diagramsStr);
                 const diagramData = diagrams[selectedDiagramName];
                 if (diagramData) {
-                    return Object.assign({}, defaultData, diagramData);
+                    return Object.assign(defaultDiagramData(), diagramData);
                 }
             }
             throw new Error("no selected diagram in new model");
@@ -99,9 +101,9 @@ function loadData() {
                 const legacyData = JSON.parse(dataStr);
                 // Migrate legacy data to new local storage format.
                 migrateLegacyData(legacyData);
-                return Object.assign({}, defaultData, legacyData);
+                return Object.assign(defaultDiagramData(), legacyData);
             } catch (e) {
-                return defaultData;
+                return defaultDiagramData();
             }
         }
     }
@@ -386,7 +388,7 @@ document.addEventListener('keydown', async function(e) {
     if ((e.ctrlKey || e.metaKey) && e.altKey && e.key.toLowerCase() === 'r') {
         e.preventDefault();
         closeModals();
-        setData(defaultData);
+        setData(defaultDiagramData());
     }
     // Show help with ?.
     if (e.key === '?') {
@@ -651,7 +653,7 @@ function deleteDiagram(name) {
             localStorage.removeItem("selectedDiagram");
             // Open default diagram when the last diagram is deleted.
             if (wasSelected) {
-                setData(defaultData, true);
+                setData(defaultDiagramData(), true, true);
                 showNotification(`Deleted "${name}", opened "Welcome to Diagrama"`, true);
             } else {
                 showNotification(`Deleted "${name}"`, true);
