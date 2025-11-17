@@ -286,23 +286,23 @@
     </div>
     <script src="./diagrama.js"></script>
     <script>
-        window.addEventListener('load', function() {
-            var overlay = document.getElementById('loading-overlay');
+        window.addEventListener("load", function() {
+            var overlay = document.getElementById("loading-overlay");
             if (overlay) {
-                overlay.style.opacity = '0';
+                overlay.style.opacity = 0;
                 // Wait a bit before hiding the overlay to allow the fade-out
                 // animation to complete.
                 setTimeout(function() {
-                    overlay.style.display = 'none';
-                }, 200);
+                    overlay.style.display = "none";
+                }, 800);
             }
         });
 
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', function() {
-                navigator.serviceWorker.register('./sw.js', {scope: './'})
+        if ("serviceWorker" in navigator) {
+            window.addEventListener("load", function() {
+                navigator.serviceWorker.register("./sw.js", {scope: "./"})
                     .catch(function(err) {
-                        console.warn('Service worker registration failed:', err);
+                        console.warn("Service worker registration failed:", err);
                     });
             });
         }
