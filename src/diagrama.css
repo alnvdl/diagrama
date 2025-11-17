@@ -1,8 +1,9 @@
-@import url("./material-symbols/font.css");
+/* We don't import the Material Symbols font stylesheet here to prevent FOUCs.
+Instead we import it directly in the HTML. */
 
 :root {
     --ui-font-size: 0.85rem;
-    --mobile-ui-font-size: 0.7rem;
+    --mobile-ui-font-size: 0.75rem;
     --ui-font-weight: 500;
     --ui-font-color: #222;
     --ui-error-color: #dc3545;
@@ -40,10 +41,26 @@ body {
     z-index: 9999;
 }
 
-.loading-content {
+#loading-content {
     align-items: center;
     display: flex;
     flex-direction: column;
+}
+
+#loading-label {
+    color: var(--ui-font-color);
+    font-size: var(--ui-font-size);
+    font-weight: var(--ui-font-weight);
+}
+
+#loading-spinner {
+    width: 48px;
+    height: 48px;
+    border: 6px solid var(--ui-button-color);
+    border-top: 6px solid var(--ui-font-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 16px;
 }
 
 @keyframes spin {
@@ -54,26 +71,6 @@ body {
     100% {
         transform: rotate(360deg);
     }
-}
-
-.loading-label {
-    color: var(--ui-font-color);
-    font-size: var(--ui-font-size);
-    font-weight: var(--ui-font-weight);
-}
-
-.spinner {
-    width: 48px;
-    height: 48px;
-    border: 6px solid var(--ui-button-color);
-    border-top: 6px solid var(--ui-font-color);
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-    margin-bottom: 16px;
-}
-
-.icon-spinner {
-    animation: spin 1s linear infinite;
 }
 
 /* App */
@@ -179,8 +176,20 @@ body {
     min-height: 32px;
 }
 
+.dg-button-group.full-width {
+    width: 100%;
+}
+
+.dg-button-group.full-width .dg-button {
+    flex: 1;
+}
+
 .dg-button-group .dg-button:not(:first-child) {
     border-left: 1px solid var(--ui-border-color);
+}
+
+.icon-spinner {
+    animation: spin 1s linear infinite;
 }
 
 #notification-overlay {
@@ -277,7 +286,7 @@ body {
     font-size: var(--modal-font-size);
     overflow-y: auto;
     position: relative;
-    max-width: 720px;
+    max-width: 96%;
     max-height: 100dvh;
     overflow: hidden;
 }
@@ -336,7 +345,6 @@ body {
 .modal td:first-child {
     font-weight: var(--ui-font-weight);
     padding-left: 16px;
-    padding-right: 1rem;
     white-space: nowrap;
     width: 180px;
 }
@@ -357,7 +365,7 @@ body {
 }
 
 #help-content {
-    max-width: 720px;
+    width: 768px;
 }
 
 #help-modal p {
@@ -366,12 +374,11 @@ body {
 }
 
 #export-content {
-    max-width: 500px;
+    width: 512px;
 }
 
 #library-content {
-    width: 500px;
-    max-width: 500px;
+    width: 512px;
 }
 
 #library-list {

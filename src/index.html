@@ -6,20 +6,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Diagrama</title>
 
+    <link rel="stylesheet" href="./diagrama.css">
+    <link rel="stylesheet" href="./material-symbols/font.css">
+
     <link rel="manifest" href="manifest.json" />
+
     <link rel="icon" href="./icon16.png" sizes="16x16" type="image/png">
     <link rel="icon" href="./icon48.png" sizes="48x48" type="image/png">
     <link rel="icon" href="./icon180.png" sizes="180x180" type="image/png">
-    <link rel="apple-touch-icon" href="./icon180.png" sizes="180x180" type="image/png">
     <link rel="icon" href="./icon.svg" sizes="any" type="image/svg+xml">
-    <link rel="stylesheet" href="./diagrama.css">
+    <link rel="apple-touch-icon" href="./icon180.png" sizes="180x180" type="image/png">
 </head>
 
 <body>
     <div id="loading-overlay">
-        <div class="loading-content">
-            <div class="spinner"></div>
-            <div class="loading-label">Loading...</div>
+        <div id="loading-content">
+            <div id="loading-spinner"></div>
+            <div id="loading-label">Loading...</div>
         </div>
     </div>
 
@@ -144,7 +147,7 @@
                             <td>set automatic font size for the editor</td>
                         </tr>
                         <tr>
-                            <td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> or <kbd>F1</kbd></td>
+                            <td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd></td>
                             <td>see all available commands</td>
                         </tr>
                     </tbody>
@@ -161,7 +164,7 @@
                             <td>zoom in/out the diagram</td>
                         </tr>
                         <tr>
-                            <td>Click and move cursor</td>
+                            <td>Click and move</td>
                             <td>pan the diagram</td>
                         </tr>
                     </tbody>
@@ -207,7 +210,7 @@
                         <p>The PNG scale also influences the Copy function.</p>
                     </small>
                 </p>
-                <div class="dg-button-group" style="float: right; margin-top: 1rem;">
+                <div class="dg-button-group full-width">
                     <button class="dg-button" id="copy-png">
                         <span class="material-symbols-rounded">content_copy</span>
                         <span class="label">Copy to clipboard</span>
@@ -283,15 +286,6 @@
     </div>
     <script src="./diagrama.js"></script>
     <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', function() {
-                navigator.serviceWorker.register('./sw.js', {scope: './'})
-                    .catch(function(err) {
-                        console.warn('Service worker registration failed:', err);
-                    });
-            });
-        }
-
         window.addEventListener('load', function() {
             var overlay = document.getElementById('loading-overlay');
             if (overlay) {
@@ -303,6 +297,15 @@
                 }, 200);
             }
         });
+
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('./sw.js', {scope: './'})
+                    .catch(function(err) {
+                        console.warn('Service worker registration failed:', err);
+                    });
+            });
+        }
     </script>
 </body>
 
