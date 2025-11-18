@@ -286,8 +286,8 @@ body {
     font-size: var(--modal-font-size);
     overflow-y: auto;
     position: relative;
-    max-width: 96%;
-    max-height: 100dvh;
+    max-width: 96dvw;
+    max-height: 96dvh;
     overflow: hidden;
 }
 
@@ -474,12 +474,12 @@ only screen and (max-width: 1280px) {
     }
 
     .dg-button-group {
-        height: 28px;
-        min-height: 28px;
+        height: 32px;
+        min-height: 32px;
     }
 
     .dg-button.fixed-width {
-        width: 26px;
+        width: 30px;
     }
 
     .dg-button>span.label.collapse {

@@ -16,9 +16,9 @@
             "sizes": "48x48"
         },
         {
-            "src": "icon180.png",
+            "src": "icon192.png",
             "type": "image/png",
-            "sizes": "180x180"
+            "sizes": "192x192"
         },
         {
             "src": "icon.svg",
