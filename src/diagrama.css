@@ -381,6 +381,10 @@ body {
     width: 512px;
 }
 
+#import-content {
+    width: 512px;
+}
+
 #library-list {
     display: flex;
     flex-direction: column;
@@ -428,6 +432,29 @@ body {
     opacity: 0.7;
     padding: 1rem;
     text-align: center;
+}
+
+.modal input[type="text"] {
+    background-color: var(--ui-background-color);
+    border: 1px solid var(--ui-border-color);
+    box-sizing: border-box;
+    color: var(--ui-font-color);
+    font-family: inherit;
+    font-size: inherit;
+    padding: 0.5rem;
+    width: 100%;
+}
+
+.modal input[type="text"]:focus {
+    outline: none;
+    border-color: var(--ui-font-color);
+}
+
+#import-error {
+    color: var(--ui-error-color);
+    font-weight: var(--ui-font-weight);
+    font-size: var(--ui-font-size);
+    margin-bottom: 1rem;
 }
 
 kbd {

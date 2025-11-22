@@ -242,6 +242,33 @@
         </div>
     </div>
 
+    <div id="import-modal" class="modal">
+        <div class="modal-dialog" id="import-content">
+            <div class="modal-title" id="import-title">
+                <h1 class="title">Import diagram</h1>
+                <button class="dg-button close-modal" id="close-import">
+                    <span class="material-symbols-rounded">close</span>
+                </button>
+            </div>
+            <div class="modal-content">
+                <p>
+                    <label>
+                        <strong>Diagram name</strong>:
+                        <br />
+                        <input id="import-diagram-name" type="text" />
+                    </label>
+                </p>
+                <div id="import-error"></div>
+                <div class="dg-button-group full-width">
+                    <button class="dg-button" id="import-confirm">
+                        <span class="material-symbols-rounded">upload</span>
+                        <span class="label">Import</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div id="app-grid" class="view-mode">
         <div id="header">
             <input id="diagram-name" type="text" placeholder="Untitled diagram" />
@@ -277,6 +304,10 @@
                 <button class="dg-button fixed-width" id="set-mode-view">
                     <span class="material-symbols-rounded">visibility</span>
                     <span class="label collapse">View</span>
+                </button>
+                <button class="dg-button fixed-width" id="set-mode-import">
+                    <span class="material-symbols-rounded">upload</span>
+                    <span class="label collapse">Import</span>
                 </button>
             </div>
         </div>

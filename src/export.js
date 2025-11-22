@@ -1,9 +1,9 @@
 import {hasIconDirectives, iconsStylesheet} from './icons.js';
 import {toB64} from './b64.js';
 
-export async function pngExport(data, svgElem, fileName, clipboard, done) {
+export async function pngExport(content, scale, svgElem, fileName, clipboard, done) {
     const clone = svgElem.cloneNode(true);
-    await injectStylesheet(clone, hasIconDirectives(data.content));
+    await injectStylesheet(clone, hasIconDirectives(content));
     clone.removeAttribute("width");
     clone.removeAttribute("height");
     const bbox = svgElem.getBBox();
@@ -39,11 +39,11 @@ export async function pngExport(data, svgElem, fileName, clipboard, done) {
     const img = new window.Image();
     img.onload = notifyDone(async function() {
         const canvas = document.createElement("canvas");
-        canvas.width = viewBoxWidth * data.pngScale;
-        canvas.height = viewBoxHeight * data.pngScale;
+        canvas.width = viewBoxWidth * scale;
+        canvas.height = viewBoxHeight * scale;
         const ctx = canvas.getContext("2d");
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.setTransform(data.pngScale, 0, 0, data.pngScale, 0, 0);
+        ctx.setTransform(scale, 0, 0, scale, 0, 0);
         ctx.drawImage(img, 0, 0);
         canvas.toBlob(notifyDone(async function(blob) {
             if (clipboard) {
@@ -66,7 +66,7 @@ export async function pngExport(data, svgElem, fileName, clipboard, done) {
     img.src = "data:image/svg+xml;base64," + toB64(svgString);
 }
 
-export async function svgExport(data, svgElem, fileName, clipboard, done) {
+export async function svgExport(content, scale, svgElem, fileName, clipboard, done) {
     // Copying the SVG to the clipboard is not supported/mostly useless.
     if (clipboard) {
         console.error("Copying SVG to the clipboard is not supported");
@@ -75,7 +75,7 @@ export async function svgExport(data, svgElem, fileName, clipboard, done) {
 
     // Clone SVG to avoid touching the DOM.
     const clone = svgElem.cloneNode(true);
-    await injectStylesheet(clone, hasIconDirectives(data.content));
+    await injectStylesheet(clone, hasIconDirectives(content));
 
     const svgData = new XMLSerializer().serializeToString(clone);
     const blob = new Blob([svgData], {type: "image/svg+xml;charset=utf-8"});

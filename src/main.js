@@ -30,7 +30,7 @@ flowchart TB
     step5 --> step8
     step6 --> step7`;
 const defaultScale = 2; // Good results with reasonable file sizes.
-const defaultDiagramData = () => {
+const defaultDiagram = () => {
     return {
         content: defaultContent.trim(),
         name: 'Welcome to Diagrama',
@@ -40,153 +40,188 @@ const defaultDiagramData = () => {
     }
 };
 
-let data = null;
+// diagrams holds the list of saved diagrams, indexed by name. It can be edited
+// by other functions.
+let diagrams = {};
+
+// currentDiagramName holds the name of the currently selected diagram. It
+// should only be written by updateCurrentDiagram.
+let currentDiagramName = "";
+
+// importedDiagram temporarily holds the data of a diagram that is being
+// proposed for importing into the library. It should only be written by
+// updateCurrentDiagram.
+let importedDiagram;
+
+// exporting is true when an export operation is in progress to prevent
+// multiple exports at the same time.
 let exporting = false;
+
+// notificationOverlayTimeout holds the timeout ID for hiding the notification
+// overlay.
 let notificationOverlayTimeout;
-let saveDataTimeout;
 
-// loadData tries to load diagram data in the following order until one attempt
-// succeeds: base64-encoded JSON in URL hash, selected diagram in local
-// storage, legacy "data" key in local storage, default template. It always
-// returns a valid data object ready to be used with updateData.
-function loadData() {
+// saveStateTimeout holds the timeout ID for debouncing saveState operations.
+let saveStateTimeout;
+
+// parseJSONObject tries to parse str as JSON and returns the resulting object.
+// It always returns an object, even if parsing fails or the parsed value is
+// not an object.
+function parseJSONObject(str) {
+    let obj = {};
     try {
+        obj = JSON.parse(str);
+        if (typeof obj !== 'object' || obj === null) {
+            obj = {};
+        }
+    } catch (e) { }
+    return obj;
+}
+
+// loadState loads the diagrams list and tries to identify the currently
+// selected diagram data using the following strategies until one succeeds:
+// base64-encoded JSON in URL hash, selected diagram in local storage, default
+// template. It always returns a valid data object ready to be used with
+// updateCurrentDiagram.
+function loadState() {
+    diagrams = parseJSONObject(localStorage.getItem("diagrams"));
+
+    let fromHash = function() {
         const hash = window.location.hash.replace(/^#/, '');
-        if (!hash) throw new Error("no data in hash");
-        const json = fromB64(hash);
-        return Object.assign(defaultDiagramData(), JSON.parse(json));
-    } catch (e) {
+        if (!hash) return;
+        let hashData = Object.assign(defaultDiagram(), parseJSONObject(fromB64(hash)));
+        // Propose to import it first if it's not in the library.
+        if (!diagrams[hashData.name] ||
+            hashData.content !== diagrams[hashData.name].content ||
+            hashData.pngScale !== diagrams[hashData.name].pngScale) {
+            hashData.mode = 'import';
+        }
+        return hashData;
+    }
+
+    let fromLocalStorage = function() {
+        let lastDiagram = localStorage.getItem("lastDiagram") || ""
+        if (diagrams[lastDiagram]) {
+            return Object.assign(defaultDiagram(), diagrams[lastDiagram]);
+        }
+    }
+
+    let fromDefault = function() {
+        return defaultDiagram();
+    }
+
+    for (let strategy of [fromHash, fromLocalStorage, fromDefault]) {
         try {
-            // Try loading the selected diagram from local storage.
-            const selectedDiagramName = localStorage.getItem("selectedDiagram");
-            const diagramsStr = localStorage.getItem("diagrams");
-            if (selectedDiagramName && diagramsStr) {
-                const diagrams = JSON.parse(diagramsStr);
-                const diagramData = diagrams[selectedDiagramName];
-                if (diagramData) {
-                    return Object.assign(defaultDiagramData(), diagramData);
-                }
-            }
-            throw new Error("no selected diagram in new model");
+            const result = strategy();
+            if (result) return result;
         } catch (e) {
-            try {
-                // Try loading from legacy "data" field in local storage.
-                const dataStr = localStorage.getItem("data");
-                if (!dataStr) throw new Error("no data in local storage");
-                const legacyData = JSON.parse(dataStr);
-                // Migrate legacy data to new local storage format.
-                migrateLegacyData(legacyData);
-                return Object.assign(defaultDiagramData(), legacyData);
-            } catch (e) {
-                return defaultDiagramData();
-            }
+            console.error(e);
+            // Ignore and try next.
         }
     }
 }
 
-// migrateLegacyData converts old single-diagram storage to the new
-// multi-diagram model.
-function migrateLegacyData(legacyData) {
+function saveState() {
+    // Remove the hashchange listener to avoid triggering another
+    // update based on the change we are making here.
+    window.removeEventListener('hashchange', init);
     try {
-        const diagramName = legacyData.name || 'Imported Diagram';
-        const diagrams = {};
-        diagrams[diagramName] = legacyData;
+        // Filter out diagrams in import mode before saving.
         localStorage.setItem("diagrams", JSON.stringify(diagrams));
-        localStorage.setItem("selectedDiagram", diagramName);
-        localStorage.removeItem("data");
+        localStorage.setItem("lastDiagram", currentDiagramName);
+
+        // Also update the hash for URL sharing.
+        const json = JSON.stringify(currentDiagram());
+        const b64 = toB64(json);
+        window.location.hash = b64;
     } catch (e) {
-        console.error("Error migrating legacy data:", e);
+        console.error(e);
+    } finally {
+        // Deferring here helps prevent the hash update above from triggering a
+        // call to init.
+        setTimeout(() => {
+            window.addEventListener('hashchange', init);
+        }, 0);
     }
 }
 
-// setData patches the in-memory data object, updates the UI accordingly and
-// saves it. It is an async function because it may need to trigger a re-render
-// of the diagram. forceRender can be used to force a re-render, and
-// isOpeningDiagram is used to indicate the setData operation is being done
-// for opening a diagram (not editing the current one).
-async function setData(patch, forceRender, isOpeningDiagram) {
-    let oldData = data;
-    data = Object.assign({}, data, patch);
+// init loads saved data and updates the current diagram. Useful when
+// initializing the page or in callbacks for external data changes (e.g., hash,
+// local storage).
+function init() {
+    updateCurrentDiagram(loadState());
+}
 
-    const nameChanged = !oldData || oldData.name !== data.name;
-    const contentChanged = !oldData || oldData.content !== data.content;
-    if (nameChanged) {
-        setName(data.name);
-        if (oldData && oldData.name !== data.name && !isOpeningDiagram) {
-            // New name means a new diagram was created. We set its last
-            // modified timestamp and show a notification.
-            data.lastModified = new Date().toISOString();
-            showNotification(`Created "${data.name}"`, true);
+function currentDiagram() {
+    return importedDiagram || diagrams[currentDiagramName];
+}
+
+// updateCurrentDiagram patches the in-memory data objects representing the
+// diagram, updates the UI accordingly and triggers a call to persiste the
+// state. It is an async function because it may need to trigger a re-render
+// of the diagram. forceRender can be used to force a re-render.
+async function updateCurrentDiagram(patch, forceRender) {
+    // The only way to switch out of an imported diagram is to go to view mode.
+    if (importedDiagram && patch.mode !== "view") {
+        return;
+    }
+
+    let prevDiagram, curDiagram;
+    if (patch.mode === "import") {
+        prevDiagram = null;
+        importedDiagram = Object.assign(defaultDiagram(), patch);
+        curDiagram = importedDiagram;
+    } else {
+        prevDiagram = importedDiagram || diagrams[currentDiagramName];
+        importedDiagram = null;
+
+        // If we are not dealing with an imported diagram, update the
+        // currentDiagramName if the name changes.
+        if (patch.name && patch.name !== currentDiagramName) {
+            currentDiagramName = patch.name;
+        }
+
+        diagrams[currentDiagramName] = Object.assign(defaultDiagram(), diagrams[currentDiagramName], patch);
+        curDiagram = diagrams[currentDiagramName];
+    }
+
+
+    // Side-effect 1: detect name change and update the UI.
+    if (!prevDiagram || prevDiagram.name !== curDiagram.name) {
+        setName(curDiagram.name);
+        if (!!prevDiagram?.name) {
+            showNotification(`Created "${curDiagram.name}"`, true);
         }
     }
-    // If the name was kept but the content changed, update the last modified
-    // timestamp.
-    if (!nameChanged && contentChanged) {
-        data.lastModified = new Date().toISOString();
+
+    // Side-effect 2: detect content change without a name change and update
+    // the last modified timestamp.
+    if (patch.mode !== "import" && prevDiagram?.name === curDiagram?.name && prevDiagram?.content !== curDiagram?.content) {
+        curDiagram.lastModified = new Date().toISOString();
     }
 
-    // If the content has changed, re-render the diagram and update the
-    // editor.
-    if (forceRender || !oldData || oldData.content !== data.content) {
-        await renderDiagram(withIconElements(data.content), document.querySelector('#diagram'));
+    // Side-effect 3: detect content change, re-render the diagram and update
+    // the editor.
+    if (forceRender || !prevDiagram || prevDiagram.content !== curDiagram.content) {
+        await renderDiagram(withIconElements(curDiagram.content), document.querySelector('#diagram'));
 
-        if (monacoEditor && monacoEditor.getValue() !== data.content) {
+        if (monacoEditor && monacoEditor.getValue() !== curDiagram.content) {
             const pos = monacoEditor.getPosition();
-            monacoEditor.setValue(data.content);
+            monacoEditor.setValue(curDiagram.content);
             if (pos) monacoEditor.setPosition(pos);
         }
     }
 
-    if (!oldData || oldData.mode != data.mode) {
-        setMode(data.mode);
+    // Side-effect 4: update the mode if it has changed.
+    if (!prevDiagram || prevDiagram.mode != curDiagram.mode) {
+        setMode(curDiagram.mode);
     }
 
-    // Debounce and defer the save operation.
-    clearTimeout(saveDataTimeout);
-    saveDataTimeout = setTimeout(() => {
-        saveData(data);
+    // Side-effect 5: debounce and defer the save operation.
+    clearTimeout(saveStateTimeout);
+    saveStateTimeout = setTimeout(() => {
+        saveState();
     }, 0);
-}
-
-// loadAndSetData loads saved data and sets it. Useful when
-// initializing the page or in callbacks for external data changes
-// (e.g., hash, local storage).
-function loadAndSetData() {
-    setData(loadData());
-}
-
-function saveData(data) {
-    // Remove the hashchange listener to avoid triggering another
-    // update based on the change we are making here.
-    window.removeEventListener('hashchange', loadAndSetData);
-    try {
-        const diagramName = data.name || 'Untitled diagram';
-        let diagrams = {};
-        try {
-            const diagramsStr = localStorage.getItem("diagrams");
-            if (diagramsStr) {
-                diagrams = JSON.parse(diagramsStr);
-            }
-        } catch (e) {
-            // Ignore parsing errors and start fresh.
-        }
-        diagrams[diagramName] = data;
-        localStorage.setItem("diagrams", JSON.stringify(diagrams));
-        localStorage.setItem("selectedDiagram", diagramName);
-
-        // Also update the hash for URL sharing.
-        const json = JSON.stringify(data);
-        const b64 = toB64(json);
-        window.location.hash = b64;
-    } catch (e) {
-        // Ignore encoding errors.
-    } finally {
-        // Deferring here helps prevent the hash update above from triggering a
-        // call to loadAndSetData.
-        setTimeout(() => {
-            window.addEventListener('hashchange', loadAndSetData);
-        }, 0);
-    }
 }
 
 function setMode(mode) {
@@ -195,6 +230,7 @@ function setMode(mode) {
     const diagramNameElem = document.getElementById('diagram-name');
     if (mode === 'edit') {
         appGrid.classList.replace('view-mode', 'edit-mode');
+        appGrid.classList.replace('import-mode', 'edit-mode');
         editor.classList.remove('hidden');
         if (diagramNameElem) {
             diagramNameElem.readOnly = false;
@@ -205,6 +241,16 @@ function setMode(mode) {
         };
     } else if (mode === 'view') {
         appGrid.classList.replace('edit-mode', 'view-mode');
+        appGrid.classList.replace('import-mode', 'view-mode');
+        editor.classList.add('hidden');
+        if (diagramNameElem) {
+            diagramNameElem.blur();
+            diagramNameElem.readOnly = true;
+            diagramNameElem.classList.add('no-caret');
+        }
+    } else if (mode === 'import') {
+        appGrid.classList.replace('edit-mode', 'import-mode');
+        appGrid.classList.replace('view-mode', 'import-mode');
         editor.classList.add('hidden');
         if (diagramNameElem) {
             diagramNameElem.blur();
@@ -216,13 +262,20 @@ function setMode(mode) {
     // Hide the view/edit buttons based on the mode.
     const editButton = document.getElementById('set-mode-edit');
     const viewButton = document.getElementById('set-mode-view');
-    if (editButton && viewButton) {
+    const importButton = document.getElementById('set-mode-import');
+    if (editButton && viewButton && importButton) {
         if (mode === 'edit') {
             editButton.classList.add('hidden');
             viewButton.classList.remove('hidden');
-        } else {
+            importButton.classList.add('hidden');
+        } else if (mode === 'view') {
             editButton.classList.remove('hidden');
             viewButton.classList.add('hidden');
+            importButton.classList.add('hidden');
+        } else if (mode === 'import') {
+            editButton.classList.add('hidden');
+            viewButton.classList.add('hidden');
+            importButton.classList.remove('hidden');
         }
     }
 }
@@ -246,13 +299,20 @@ function setName(name) {
 }
 
 // Handle diagram name changes on blur.
-document.getElementById('diagram-name').addEventListener('blur', function(e) {
-    setData({name: e.target.value});
+document.getElementById('diagram-name').addEventListener('blur', async function(e) {
+    if (e.target.value !== currentDiagramName) {
+        let newDiagram = Object.assign(defaultDiagram(), currentDiagram(), {
+            name: e.target.value,
+            content: monacoEditor.getValue(),
+            lastModified: new Date().toISOString()
+        });
+        await updateCurrentDiagram(newDiagram, true);
+    }
 });
 
 // App-wide keyboard shorcuts.
 document.addEventListener('keydown', async function(e) {
-    let editing = data.mode === "edit" &&
+    let editing = currentDiagram().mode === "edit" &&
         (monacoEditor.hasTextFocus() ||
             document.activeElement == document.getElementById('diagram-name'));
 
@@ -260,7 +320,15 @@ document.addEventListener('keydown', async function(e) {
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'e') {
         e.preventDefault();
         closeModals();
-        setData({mode: data.mode === 'view' ? 'edit' : 'view', content: monacoEditor.getValue()});
+        if (currentDiagram().mode === "import") {
+            showImport();
+            return;
+        };
+        updateCurrentDiagram({
+            mode: currentDiagram().mode === 'view' ? 'edit' : 'view',
+            name: document.getElementById('diagram-name').value,
+            content: monacoEditor.getValue()
+        });
     }
     // Share the diagram with Ctrl+S.
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
@@ -275,14 +343,17 @@ document.addEventListener('keydown', async function(e) {
         }
         e.preventDefault();
         closeModals();
-        await setData({content: monacoEditor.getValue()});
+        await updateCurrentDiagram({
+            name: document.getElementById('diagram-name').value,
+            content: monacoEditor.getValue(),
+        });
         export_('png', true);
     }
     // Reset the diagram with Ctrl+Alt+R.
     if ((e.ctrlKey || e.metaKey) && e.altKey && e.key.toLowerCase() === 'r') {
         e.preventDefault();
         closeModals();
-        setData(defaultDiagramData());
+        updateCurrentDiagram(defaultDiagram());
     }
     // Show help with ?.
     if (e.key === '?') {
@@ -316,16 +387,21 @@ document.addEventListener('keydown', async function(e) {
 
 // Mode buttons.
 document.getElementById('set-mode-edit').addEventListener('click', function() {
-    setData({mode: 'edit'});
+    updateCurrentDiagram({mode: 'edit'});
 });
 document.getElementById('set-mode-view').addEventListener('click', function() {
-    setData({mode: 'view', content: monacoEditor.getValue()});
+    updateCurrentDiagram({
+        mode: 'view',
+        name: document.getElementById('diagram-name').value,
+        content: monacoEditor.getValue()
+    });
 });
 
 function closeModals() {
     closeHelp();
     closeLibrary();
     closeExport();
+    closeImport();
 }
 
 // Help.
@@ -348,7 +424,10 @@ document.getElementById('close-library').addEventListener('click', closeLibrary)
 
 async function showLibrary() {
     closeModals();
-    await setData({content: monacoEditor.getValue()});
+    await updateCurrentDiagram({
+        name: document.getElementById('diagram-name').value,
+        content: monacoEditor.getValue()
+    });
     renderLibraryList();
     let modal = document.getElementById('library-modal');
     modal.style.display = modal.style.display === 'flex' ? 'none' : 'flex';
@@ -380,76 +459,36 @@ function renderLibraryList() {
         listContainer.removeChild(listContainer.firstChild);
     }
 
-    try {
-        const diagramsStr = localStorage.getItem("diagrams");
-        if (!diagramsStr) {
-            const emptyDiv = document.createElement('div');
-            emptyDiv.className = 'library-empty';
-            emptyDiv.textContent = 'No diagrams saved yet.';
-            listContainer.appendChild(emptyDiv);
-            return;
-        }
+    // Current diagram.
+    const currentLabel = document.createElement('p');
+    currentLabel.textContent = currentDiagram().mode === 'import' ? 'Current diagram to import' : "Current diagram";
+    currentLabel.classList.add('library-list-section-label');
+    listContainer.appendChild(currentLabel);
+    appendDiagramItem(listContainer, currentDiagram());
 
-        const diagrams = JSON.parse(diagramsStr);
-        const selectedDiagram = localStorage.getItem("selectedDiagram");
-        const diagramNames = Object.keys(diagrams);
+    const savedDiagrams = Object.values(diagrams)
+        // If showing an imported diagram, list all. Otherwise, exclude the
+        // currently selected diagram.
+        .filter(d => currentDiagram().mode === 'import' || d.name !== currentDiagram().name)
+        .sort((a, b) => new Date(b.lastModified) - new Date(a.lastModified));
+    if (savedDiagrams.length === 0) {
+        return
+    }
 
-        if (diagramNames.length === 0) {
-            const emptyDiv = document.createElement('div');
-            emptyDiv.className = 'library-empty';
-            emptyDiv.textContent = 'No diagrams saved yet.';
-            listContainer.appendChild(emptyDiv);
-            return;
-        }
+    // Separator.
+    listContainer.appendChild(document.createElement('hr'));
 
-        // Separate selected diagram from others.
-        const selected = diagramNames.filter(name => name === selectedDiagram);
-        const others = diagramNames.filter(name => name !== selectedDiagram);
-
-        // Sort others by lastModified (newest first).
-        others.sort((a, b) => {
-            const aTime = diagrams[a]?.lastModified ? new Date(diagrams[a].lastModified) : new Date(0);
-            const bTime = diagrams[b]?.lastModified ? new Date(diagrams[b].lastModified) : new Date(0);
-            return bTime - aTime;
-        });
-
-        // Render selected diagram first if it exists.
-        if (selected.length > 0) {
-            const currentLabel = document.createElement('p');
-            currentLabel.textContent = 'Current diagram';
-            currentLabel.classList.add('library-list-section-label');
-            listContainer.appendChild(currentLabel);
-
-            selected.forEach(name => {
-                appendDiagramItem(listContainer, name, diagrams[name]);
-            });
-
-            // Only add separator if there are other diagrams.
-            if (others.length > 0) {
-                const hr = document.createElement('hr');
-                listContainer.appendChild(hr);
-
-                const othersLabel = document.createElement('p');
-                othersLabel.textContent = 'Saved diagrams';
-                othersLabel.classList.add('library-list-section-label');
-                listContainer.appendChild(othersLabel);
-            }
-        }
-
-        // Render other diagrams sorted by date.
-        others.forEach(name => {
-            appendDiagramItem(listContainer, name, diagrams[name]);
-        });
-    } catch (e) {
-        console.error("Error rendering library list:", e);
-        const errorDiv = document.createElement('div');
-        errorDiv.className = 'library-empty';
-        errorDiv.textContent = 'Error loading diagrams.';
-        listContainer.appendChild(errorDiv);
+    // Saved diagrams from most recently modified to least recently modified.
+    const label = document.createElement('p');
+    label.textContent = 'Saved diagrams';
+    label.classList.add('library-list-section-label');
+    listContainer.appendChild(label);
+    for (let diagramData of savedDiagrams) {
+        appendDiagramItem(listContainer, diagramData);
     }
 }
 
-function appendDiagramItem(container, name, diagramData) {
+function appendDiagramItem(container, diagramData) {
     const item = document.createElement('div');
     item.className = 'library-item';
 
@@ -458,8 +497,8 @@ function appendDiagramItem(container, name, diagramData) {
 
     const nameSpan = document.createElement('span');
     nameSpan.className = 'library-item-name';
-    nameSpan.textContent = name;
-    nameSpan.title = name;
+    nameSpan.textContent = diagramData.name;
+    nameSpan.title = diagramData.name;
 
     const timeSpan = document.createElement('span');
     timeSpan.className = 'library-item-timestamp';
@@ -476,35 +515,52 @@ function appendDiagramItem(container, name, diagramData) {
     const buttonsGroup = document.createElement('div');
     buttonsGroup.className = 'dg-button-group';
 
-    const deleteButton = document.createElement('button');
-    deleteButton.className = 'dg-button';
-    deleteButton.title = 'Delete diagram';
-    const deleteIcon = document.createElement('span');
-    deleteIcon.className = 'material-symbols-rounded';
-    deleteIcon.textContent = 'delete';
-    deleteButton.appendChild(deleteIcon);
-    deleteButton.addEventListener('click', () => {
-        if (confirm(`Are you sure you want to delete "${name}"?`)) {
-            deleteDiagram(name);
+    if (diagramData.mode === 'import') {
+        // Show import button for diagrams in import mode.
+        const importButton = document.createElement('button');
+        importButton.className = 'dg-button';
+        importButton.title = 'Import diagram';
+        const importIcon = document.createElement('span');
+        importIcon.className = 'material-symbols-rounded';
+        importIcon.textContent = 'upload';
+        importButton.appendChild(importIcon);
+        importButton.addEventListener('click', () => {
+            showImport();
             closeLibrary();
-            renderLibraryList();
-        }
-    });
+        });
+        buttonsGroup.appendChild(importButton);
+    } else {
+        // Show open and delete buttons for saved diagrams.
+        const deleteButton = document.createElement('button');
+        deleteButton.className = 'dg-button';
+        deleteButton.title = 'Delete diagram';
+        const deleteIcon = document.createElement('span');
+        deleteIcon.className = 'material-symbols-rounded';
+        deleteIcon.textContent = 'delete';
+        deleteButton.appendChild(deleteIcon);
+        deleteButton.addEventListener('click', () => {
+            if (confirm(`Are you sure you want to delete "${diagramData.name}"?`)) {
+                deleteDiagram(diagramData.name);
+                closeLibrary();
+                renderLibraryList();
+            }
+        });
 
-    const openButton = document.createElement('button');
-    openButton.className = 'dg-button';
-    openButton.title = 'Open diagram';
-    const openIcon = document.createElement('span');
-    openIcon.className = 'material-symbols-rounded';
-    openIcon.textContent = 'open_in_browser';
-    openButton.appendChild(openIcon);
-    openButton.addEventListener('click', () => {
-        openDiagram(name);
-        closeLibrary();
-    });
+        const openButton = document.createElement('button');
+        openButton.className = 'dg-button';
+        openButton.title = 'Open diagram';
+        const openIcon = document.createElement('span');
+        openIcon.className = 'material-symbols-rounded';
+        openIcon.textContent = 'open_in_browser';
+        openButton.appendChild(openIcon);
+        openButton.addEventListener('click', () => {
+            openDiagram(diagramData.name);
+            closeLibrary();
+        });
 
-    buttonsGroup.appendChild(deleteButton);
-    buttonsGroup.appendChild(openButton);
+        buttonsGroup.appendChild(deleteButton);
+        buttonsGroup.appendChild(openButton);
+    }
 
     item.appendChild(infoDiv);
     item.appendChild(buttonsGroup);
@@ -512,69 +568,149 @@ function appendDiagramItem(container, name, diagramData) {
 }
 
 function openDiagram(name) {
-    try {
-        const diagramsStr = localStorage.getItem("diagrams");
-        if (!diagramsStr) return;
+    const data = diagrams[name];
+    if (!data) {
+        showNotification(`Could not find diagram "${name}"`, false);
+    };
 
-        const diagrams = JSON.parse(diagramsStr);
-        const diagramData = diagrams[name];
-
-        if (!diagramData) return;
-
-        localStorage.setItem("selectedDiagram", name);
-        // Always open diagrams in view mode, even if they were last saved in
-        // edit mode.
-        diagramData.mode = "view";
-        setData(diagramData, true, true);
-        showNotification(`Opened "${name}"`, true);
-    } catch (e) {
-        console.error("Error opening diagram:", e);
-    }
+    // Always open diagrams in view mode, even if they were last saved in
+    // edit mode.
+    data.mode = "view";
+    updateCurrentDiagram(data, true, true);
+    showNotification(`Opened "${name}"`, true);
 }
 
 function deleteDiagram(name) {
-    try {
-        const diagramsStr = localStorage.getItem("diagrams");
-        if (!diagramsStr) return;
+    const wasOpen = currentDiagram().name === name;
+    let newlyOpened = null;
+    delete diagrams[name];
+    saveState();
 
-        const diagrams = JSON.parse(diagramsStr);
-        const wasSelected = localStorage.getItem("selectedDiagram") === name;
-        let newSelected = null;
-        delete diagrams[name];
-
-        if (Object.keys(diagrams).length === 0) {
-            localStorage.removeItem("diagrams");
-            localStorage.removeItem("selectedDiagram");
-            // Open default diagram when the last diagram is deleted.
-            if (wasSelected) {
-                setData(defaultDiagramData(), true, true);
-                showNotification(`Deleted "${name}", opened "Welcome to Diagrama"`, true);
-            } else {
-                showNotification(`Deleted "${name}"`, true);
-            }
-        } else {
-            localStorage.setItem("diagrams", JSON.stringify(diagrams));
-
-            // If the deleted diagram was the selected one, select a different one.
-            if (wasSelected) {
-                const remainingNames = Object.keys(diagrams);
-                if (remainingNames.length > 0) {
-                    newSelected = remainingNames[0];
-                    localStorage.setItem("selectedDiagram", newSelected);
-                    openDiagram(newSelected);
-                }
-            }
-
-            // Show appropriate notification based on whether another diagram was opened.
-            if (wasSelected && newSelected) {
-                showNotification(`Deleted "${name}", opened "${newSelected}"`, true);
-            } else {
-                showNotification(`Deleted "${name}"`, true);
-            }
+    if (Object.keys(diagrams).length === 0) {
+        updateCurrentDiagram(defaultDiagram(), true, true);
+        showNotification(`Deleted "${name}", opened "${currentDiagram().name}"`, true);
+    } else {
+        // If the deleted diagram was the selected one, select the most
+        // recently modified diagram.
+        if (wasOpen) {
+            let remainingDiagrams = Object.values(diagrams).sort((a, b) => new Date(b.lastModified) - new Date(a.lastModified));
+            newlyOpened = remainingDiagrams[0].name;
+            openDiagram(newlyOpened);
         }
-    } catch (e) {
-        console.error("Error deleting diagram:", e);
+
+        // Show appropriate notification based on whether another diagram
+        // was opened.
+        if (wasOpen && newlyOpened) {
+            showNotification(`Deleted "${name}", opened "${newlyOpened}"`, true);
+        } else {
+            showNotification(`Deleted "${name}"`, true);
+        }
     }
+}
+
+// Import.
+document.getElementById('close-import').addEventListener('click', closeImport);
+document.getElementById('set-mode-import').addEventListener('click', showImport);
+document.getElementById('import-confirm').addEventListener('click', confirmImport);
+document.getElementById('import-diagram-name').addEventListener('input', onImportNameChanged);
+
+async function showImport() {
+    closeModals();
+    const nameInput = document.getElementById('import-diagram-name');
+    nameInput.value = generateImportName(currentDiagram().name);
+    clearImportError();
+    nameInput.focus();
+    let modal = document.getElementById('import-modal');
+    modal.style.display = 'flex';
+}
+
+function closeImport() {
+    document.getElementById('import-modal').style.display = 'none';
+}
+
+function generateImportName(name) {
+    // If the name doesn't exist in the library in non-import mode, keep the
+    // name.
+    if (!diagrams[name] || diagrams[name].mode === 'import') {
+        return name;
+    }
+
+    // Remove any existing " - Imported" suffix to get the original name.
+    let originalName = name;
+    const importedMatch = name.match(/^(.*?)(?: - Imported(?: \d+)?)?$/);
+    if (importedMatch && name.includes(' - Imported')) {
+        originalName = name.replace(/ - Imported(?: \d+)?$/, '');
+    }
+
+    // Otherwise, generate a name like "name - Imported", "name - Imported 2",
+    // etc.
+    let counter = 1;
+    let newName;
+    do {
+        newName = counter === 1 ? `${originalName} - Imported` : `${originalName} - Imported ${counter}`;
+        counter++;
+    } while (diagrams[newName]);
+
+    return newName;
+}
+
+function clearImportError() {
+    const errorDiv = document.getElementById('import-error');
+    errorDiv.textContent = '';
+    const button = document.getElementById('import-confirm');
+    const icon = button.querySelector('.material-symbols-rounded');
+    icon.textContent = 'upload';
+    const label = button.querySelector('.label');
+    label.textContent = 'Import';
+}
+
+function showImportError(message) {
+    const errorDiv = document.getElementById('import-error');
+    errorDiv.textContent = message;
+}
+
+function onImportNameChanged() {
+    clearImportError();
+}
+
+async function confirmImport() {
+    const nameInput = document.getElementById('import-diagram-name');
+    const importName = nameInput.value.trim();
+
+    if (!importName) {
+        showImportError("Please enter a diagram name.");
+        return;
+    }
+
+    // Check if the diagram already exists in non-import mode.
+    if (diagrams[importName] && diagrams[importName].mode !== 'import') {
+        const button = document.getElementById('import-confirm');
+        const currentLabel = button.querySelector('.label').textContent;
+
+        // If we're already in overwrite mode, proceed with the import.
+        if (currentLabel === 'Overwrite') {
+            performImport(importName);
+            return;
+        }
+
+        // Otherwise, show the error and change button to Overwrite.
+        showImportError("A diagram with this name already exists, please confirm that you want to overwrite it.");
+        const icon = button.querySelector('.material-symbols-rounded');
+        icon.textContent = 'upload';
+        const label = button.querySelector('.label');
+        label.textContent = 'Overwrite';
+        return;
+    }
+
+    // Diagram doesn't exist, proceed with the import.
+    performImport(importName);
+}
+
+async function performImport(importName) {
+    const data = Object.assign(defaultDiagram(), currentDiagram(), {name: importName, mode: "view"});
+    await updateCurrentDiagram(data, true);
+    closeImport();
+    showNotification(`Imported "${importName}"`, true);
 }
 
 // Export/copy.
@@ -583,7 +719,7 @@ document.getElementById('close-export').addEventListener('click', closeExport);
 document.getElementById('export').addEventListener('click', function() {
     const scaleInput = document.getElementById('png-export-scale');
     const scaleLabel = document.getElementById('png-export-scale-value');
-    if (scaleInput) scaleInput.value = data.pngScale || 2;
+    if (scaleInput) scaleInput.value = currentDiagram().pngScale || 2;
     scaleLabel.textContent = scaleInput.value;
 
     showExport();
@@ -604,7 +740,10 @@ function closeExport() {
 
 document.getElementById("copy").addEventListener('click', async function(ev) {
     if (exporting) return;
-    await setData({content: monacoEditor.getValue()});
+    await updateCurrentDiagram({
+        name: document.getElementById('diagram-name').value,
+        content: monacoEditor.getValue()
+    });
     export_('png', true);
 });
 
@@ -616,7 +755,7 @@ document.getElementById('png-export-scale').addEventListener('input', async func
 
     const scaleLabel = document.getElementById('png-export-scale-value');
     scaleLabel.textContent = scale;
-    await setData({pngScale: scale});
+    await updateCurrentDiagram({pngScale: scale});
 });
 
 // Export/copy buttons in the modal.
@@ -641,7 +780,10 @@ async function export_(formatID, clipboard) {
         return;
     }
 
-    await setData({content: monacoEditor.getValue()});
+    await updateCurrentDiagram({
+        name: document.getElementById('diagram-name').value,
+        content: monacoEditor.getValue()
+    });
     const svgElem = document.querySelector('#diagram-svg');
     if (!svgElem) {
         alert('No diagram to export.');
@@ -683,7 +825,11 @@ async function export_(formatID, clipboard) {
 
     let name = document.getElementById('diagram-name').value.trim() || 'Diagrama';
     if (!name.toLowerCase().endsWith(format.ext)) name += format.ext;
-    format.fn(data, svgElem, name, clipboard, doneCallback);
+    // Obtain the scale directly from the element to ensure it works even in
+    // import mode, where the scale is not updated by updateCurrentDiagram.
+    let scale = document.getElementById('png-export-scale').value;
+    console.log(currentDiagram().content, scale);
+    format.fn(currentDiagram().content, scale, svgElem, name, clipboard, doneCallback);
 }
 
 // Share.
@@ -691,7 +837,11 @@ document.getElementById('share').addEventListener('click', share);
 
 async function share() {
     closeHelp();
-    await setData({content: monacoEditor.getValue(), mode: "view"});
+    await updateCurrentDiagram({
+        mode: "view",
+        name: document.getElementById('diagram-name').value,
+        content: monacoEditor.getValue(),
+    });
     let ok = true;
     try {
         await navigator.clipboard.writeText(window.location.href);
@@ -732,7 +882,7 @@ window.addEventListener("storage", ev => {
 let monacoEditor = initEditor({
     element: document.getElementById("editor"),
     initialFontSize: localStorage.getItem("fontSizeOverride"),
-    onContentChanged: (content) => setData({content}, true),
+    onContentChanged: (content) => updateCurrentDiagram({content}, true),
     onFontSizeChanged: (fontSize) => {
         if (fontSize === null) {
             localStorage.removeItem("fontSizeOverride");
@@ -741,5 +891,5 @@ let monacoEditor = initEditor({
         localStorage.setItem("fontSizeOverride", fontSize);
     },
 });
-loadAndSetData();
+init();
 
