@@ -1,11 +1,14 @@
 export function fromB64(str) {
-    const bytes = Uint8Array.from(atob(str), c => c.charCodeAt(0));
-    return new TextDecoder().decode(bytes);
+    const dec = new TextDecoder();
+    try {
+        return dec.decode(Uint8Array.fromBase64(str, {alphabet: "base64url"}));
+    } catch {
+        // Older versions of diagrama used base64 instead of base64url.
+        return dec.decode(Uint8Array.fromBase64(str, {alphabet: "base64"}));
+    }
 }
 
 export function toB64(str) {
-    const bytes = new TextEncoder().encode(str);
-    let binary = '';
-    bytes.forEach((b) => binary += String.fromCharCode(b));
-    return btoa(binary);
+    const barr = new TextEncoder().encode(str);
+    return barr.toBase64({alphabet: "base64url"});
 }
