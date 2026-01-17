@@ -495,22 +495,34 @@ function appendDiagramItem(container, diagramData) {
     const infoDiv = document.createElement('div');
     infoDiv.className = 'library-item-info';
 
-    const nameSpan = document.createElement('span');
-    nameSpan.className = 'library-item-name';
-    nameSpan.textContent = diagramData.name;
-    nameSpan.title = diagramData.name;
+    const nameAnchor = document.createElement('a');
+    nameAnchor.className = 'library-item-name';
+    nameAnchor.href = "#";
+    nameAnchor.textContent = diagramData.name;
+    nameAnchor.title = diagramData.name;
+    nameAnchor.addEventListener('click', (e) => {
+        e.preventDefault();
+        openDiagram(diagramData.name);
+        closeLibrary();
+    });
 
-    const timeSpan = document.createElement('span');
-    timeSpan.className = 'library-item-timestamp';
+    const timeAnchor = document.createElement('a');
+    timeAnchor.className = 'library-item-timestamp';
+    timeAnchor.href = "#";
     if (diagramData && diagramData.lastModified) {
         const lastModified = new Date(diagramData.lastModified);
-        timeSpan.textContent = `Last modified ${formatTimestamp(lastModified)}`;
+        timeAnchor.textContent = `Last modified ${formatTimestamp(lastModified)}`;
     } else {
-        timeSpan.textContent = 'Unknown';
+        timeAnchor.textContent = 'Unknown';
     }
+    timeAnchor.addEventListener('click', (e) => {
+        e.preventDefault();
+        openDiagram(diagramData.name);
+        closeLibrary();
+    });
 
-    infoDiv.appendChild(nameSpan);
-    infoDiv.appendChild(timeSpan);
+    infoDiv.appendChild(nameAnchor);
+    infoDiv.appendChild(timeAnchor);
 
     const buttonsGroup = document.createElement('div');
     buttonsGroup.className = 'dg-button-group';

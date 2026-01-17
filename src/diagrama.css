@@ -414,12 +414,25 @@ body {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    color: inherit;
+    text-decoration: none;
+}
+
+.library-item-name:hover {
+    text-decoration: underline;
+    text-decoration-color: black;
 }
 
 .library-item-timestamp {
     font-style: italic;
     font-size: 0.7rem;
     opacity: 0.5;
+    color: inherit;
+    text-decoration: none;
+}
+
+.library-item-timestamp:hover {
+    text-decoration: none;
 }
 
 .library-item .dg-button-group {
