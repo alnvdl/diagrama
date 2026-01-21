@@ -8,7 +8,7 @@ export function fromB64(str) {
     }
 }
 
-export function toB64(str) {
+export function toB64(str, alphabet="base64url") {
     const barr = new TextEncoder().encode(str);
-    return barr.toBase64({alphabet: "base64url"});
+    return barr.toBase64({alphabet});
 }

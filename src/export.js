@@ -63,7 +63,12 @@ export async function pngExport(content, scale, svgElem, fileName, clipboard, do
             }
         }));
     });
-    img.src = "data:image/svg+xml;base64," + toB64(svgString);
+    img.onerror = notifyDone(async function() {
+        throw new Error("Failed to load diagram image for PNG export");
+    });
+    // Curiously, the base64url alphabet doesn't work well with data URIs.
+    // So we use standard base64 and encodeURIComponent to be safe.
+    img.src = "data:image/svg+xml;base64," + encodeURIComponent(toB64(svgString, "base64"));
 }
 
 export async function svgExport(content, scale, svgElem, fileName, clipboard, done) {

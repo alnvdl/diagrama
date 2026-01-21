@@ -840,7 +840,6 @@ async function export_(formatID, clipboard) {
     // Obtain the scale directly from the element to ensure it works even in
     // import mode, where the scale is not updated by updateCurrentDiagram.
     let scale = document.getElementById('png-export-scale').value;
-    console.log(currentDiagram().content, scale);
     format.fn(currentDiagram().content, scale, svgElem, name, clipboard, doneCallback);
 }
 
