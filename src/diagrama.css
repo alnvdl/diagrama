@@ -1,20 +1,14 @@
 /* We don't import the Material Symbols font stylesheet here to prevent FOUCs.
 Instead we import it directly in the HTML. */
 
+@import url("./lightwebapp.css");
+
 :root {
-    --ui-font-size: 0.85rem;
-    --mobile-ui-font-size: 0.75rem;
-    --ui-font-weight: 500;
-    --ui-font-color: #222;
-    --ui-error-color: #dc3545;
-    --ui-background-color: #fff;
-    --ui-button-hover-color: #ddd;
-    --ui-button-color: #eee;
-    --ui-border-color: #ccc;
-    --ui-editor-background-color: #1e1e1e;
-    --ui-fast-transition: 150ms;
-    --ui-slow-transition: 300ms;
-    --modal-font-size: 0.9rem;
+    --dg-error-color: #dc3545;
+    --dg-background-color: #fff;
+    --dg-editor-background-color: #1e1e1e;
+    --dg-fast-transition: 150ms;
+    --dg-modal-font-size: 0.9rem;
 }
 
 body {
@@ -28,7 +22,7 @@ body {
 /* Loading overlay */
 #loading-overlay {
     align-items: center;
-    background: var(--ui-background-color);
+    background: var(--dg-background-color);
     display: flex;
     flex-direction: column;
     height: 100dvh;
@@ -36,7 +30,7 @@ body {
     left: 0;
     position: fixed;
     top: 0;
-    transition: opacity calc(2*var(--ui-slow-transition));
+    transition: opacity calc(2*var(--lwa-transition));
     width: 100dvw;
     z-index: 9999;
 }
@@ -48,16 +42,16 @@ body {
 }
 
 #loading-label {
-    color: var(--ui-font-color);
-    font-size: var(--ui-font-size);
-    font-weight: var(--ui-font-weight);
+    color: var(--lwa-font-color);
+    font-size: var(--lwa-font-size);
+    font-weight: var(--lwa-font-weight);
 }
 
 #loading-spinner {
     width: 48px;
     height: 48px;
-    border: 6px solid var(--ui-button-color);
-    border-top: 6px solid var(--ui-font-color);
+    border: 6px solid var(--lwa-button-color);
+    border-top: 6px solid var(--lwa-font-color);
     border-radius: 50%;
     animation: spin 1s linear infinite;
     margin-bottom: 16px;
@@ -84,7 +78,7 @@ body {
     height: 100dvh;
     max-height: 100dvh;
     max-width: 100dvw;
-    transition: grid-template-columns var(--ui-fast-transition) linear;
+    transition: grid-template-columns var(--dg-fast-transition) linear;
     width: 100dvw;
     overflow: hidden;
 }
@@ -102,7 +96,7 @@ body {
 /* Header */
 #header {
     align-items: center;
-    border-bottom: 1px solid var(--ui-border-color);
+    border-bottom: 1px solid var(--lwa-border-color);
     display: flex;
     gap: 1rem;
     grid-area: header;
@@ -113,10 +107,10 @@ body {
 #diagram-name {
     background: transparent;
     border: none !important;
-    color: var(--ui-font-color);
+    color: var(--lwa-font-color);
     flex: 1 1 auto;
     font-size: 1.5rem;
-    font-weight: var(--ui-font-weight);
+    font-weight: var(--lwa-font-weight);
     max-width: unset;
     min-width: 0;
     outline: none !important;
@@ -124,31 +118,15 @@ body {
     padding: 0;
     text-overflow: ellipsis;
     white-space: nowrap;
+
+    &:focus {
+        border: none !important;
+        box-shadow: none !important;
+    }
 }
 
 #diagram-name.no-caret {
     caret-color: transparent;
-}
-
-.dg-button {
-    align-items: center;
-    background: var(--ui-button-color);
-    border: none;
-    color: var(--ui-font-color);
-    cursor: pointer;
-    display: inline-flex;
-    font-family: inherit;
-    font-size: var(--ui-font-size);
-    font-weight: var(--ui-font-weight);
-    gap: 0.5rem;
-    justify-content: center;
-    padding: 0.5rem;
-    transition: background-color var(--ui-slow-transition);
-}
-
-.dg-button:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
 }
 
 .dg-button.fixed-width {
@@ -159,19 +137,12 @@ body {
     display: none !important;
 }
 
-.dg-button:hover {
-    background-color: var(--ui-button-hover-color);
-}
-
 .dg-button .material-symbols-rounded,
 .dg-button-group .material-symbols-rounded {
     font-size: 20px;
 }
 
 .dg-button-group {
-    border: 1px solid var(--ui-border-color);
-    box-sizing: border-box;
-    display: inline-flex;
     height: 32px;
     min-height: 32px;
 }
@@ -184,19 +155,15 @@ body {
     flex: 1;
 }
 
-.dg-button-group .dg-button:not(:first-child) {
-    border-left: 1px solid var(--ui-border-color);
-}
-
 .icon-spinner {
     animation: spin 1s linear infinite;
 }
 
 #notification-overlay {
-    background: var(--ui-font-color);
-    color: var(--ui-background-color);
-    font-size: var(--ui-font-size);
-    font-weight: var(--ui-font-weight);
+    background: var(--lwa-font-color);
+    color: var(--dg-background-color);
+    font-size: var(--lwa-font-size);
+    font-weight: var(--lwa-font-weight);
     opacity: 0;
     padding: 0.75rem 1.5rem;
     pointer-events: none;
@@ -204,13 +171,13 @@ body {
     right: 1rem;
     top: 3.5rem;
     transform: none;
-    transition: opacity var(--ui-slow-transition);
+    transition: opacity var(--lwa-transition);
     z-index: 10000;
     max-width: 20rem;
 }
 
 #notification-overlay.error {
-    background-color: var(--ui-error-color);
+    background-color: var(--dg-error-color);
 }
 
 #notification-overlay.show {
@@ -219,8 +186,8 @@ body {
 
 /* Editor */
 #editor {
-    background-color: var(--ui-editor-background-color);
-    border-right: 1px solid var(--ui-border-color);
+    background-color: var(--dg-editor-background-color);
+    border-right: 1px solid var(--lwa-border-color);
     grid-area: editor;
     padding: 0;
     z-index: 2;
@@ -237,16 +204,16 @@ body {
     padding: 0.5rem 1rem;
 }
 
-/* Mermaid seems to render the diagram in another container when
-        loading the page (we use #diagram-svg in the code, not #ddiagram-svg).
-        This rule ensures this container does not flash when the page loads. */
+/* Mermaid seems to render the diagram in another container when loading the
+page (we use #diagram-svg in the code, not #ddiagram-svg). This rule ensures
+this container does not flash when the page loads. */
 #ddiagram-svg {
     width: 0px;
     height: 0px;
 }
 
 #diagram-error {
-    color: var(--ui-error-color);
+    color: var(--dg-error-color);
     font-family: monospace;
     overflow-x: auto;
     padding: 0.5rem 1.5rem 0.5rem 1.5rem;
@@ -257,6 +224,7 @@ body {
         update it in both places */
 #diagram-svg a {
     color: inherit;
+    font-weight: initial;
 }
 
 #diagram-svg .material-symbols-rounded {
@@ -281,9 +249,9 @@ body {
 }
 
 .modal-dialog {
-    background: var(--ui-background-color);
-    border: 1px solid var(--ui-border-color);
-    font-size: var(--modal-font-size);
+    background: var(--dg-background-color);
+    border: 1px solid var(--lwa-border-color);
+    font-size: var(--dg-modal-font-size);
     overflow-y: auto;
     position: relative;
     max-width: 96dvw;
@@ -291,17 +259,19 @@ body {
     overflow: hidden;
 }
 
-.modal-title {
+.modal-bar {
     display: flex;
     justify-content: space-between;
-    background: var(--ui-button-color);
-    border-bottom: 1px solid var(--ui-border-color);
+    background: var(--lwa-button-color);
+    border-bottom: 1px solid var(--lwa-border-color);
     padding: 0.75rem 1rem;
 }
 
-.modal-title h1 {
-    margin: 0px;
-    font-weight: normal;
+.modal-bar .title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    line-height: 32px;
+    margin: 0px !important;
 }
 
 .modal-content {
@@ -310,9 +280,9 @@ body {
     overflow-y: auto;
 }
 
-.modal a {
-    color: var(--ui-font-color);
-    font-weight: var(--ui-font-weight);
+.modal-content label,
+.modal-content input {
+    width: 100%;
 }
 
 .modal p:first-child {
@@ -320,68 +290,45 @@ body {
 }
 
 .close-modal {
-    border: 1px solid var(--ui-border-color);
+    border: 1px solid var(--lwa-border-color);
     height: 32px;
     width: 32px;
 }
 
-.modal table {
-    border-collapse: collapse;
-    margin-bottom: 1.5rem;
-    width: 100%;
-}
-
-.modal th {
-    font-weight: var(--ui-font-weight);
-    padding-bottom: 0.5rem;
-    text-align: left;
-}
-
-.modal td {
-    padding: 0.15rem 0;
-    vertical-align: top;
-}
-
 .modal td:first-child {
-    font-weight: var(--ui-font-weight);
+    font-weight: var(--lwa-font-weight);
     padding-left: 16px;
     white-space: nowrap;
     width: 180px;
 }
 
 .modal hr {
-    border-bottom: 1px solid #ccc !important;
+    border-bottom: 1px solid var(--lwa-font-color) !important;
     border: none;
-    margin: var(--modal-font-size) 0rem;
+    margin: var(--dg-modal-font-size) 0rem;
 }
 
 .modal ul {
-    list-style-type: none;
-    padding-left: var(--modal-font-size);
-}
-
-.modal ul li {
-    margin-bottom: 0.5rem;
+    list-style-type: "🢒 ";
 }
 
 #help-content {
-    width: 768px;
+    width: 600px;
 }
 
-#help-modal p {
-    line-height: 1.5rem;
-    max-width: 40rem;
+#help-content table {
+    margin-bottom: 16px;
 }
 
 #export-content {
     width: 512px;
 }
 
-#library-content {
+#import-content {
     width: 512px;
 }
 
-#import-content {
+#library-content {
     width: 512px;
 }
 
@@ -416,11 +363,12 @@ body {
     white-space: nowrap;
     color: inherit;
     text-decoration: none;
+    font-weight: var(--lwa-font-weight);
 }
 
 .library-item-name:hover {
     text-decoration: underline;
-    text-decoration-color: black;
+    text-decoration-color: var(--lwa-font-color);
 }
 
 .library-item-timestamp {
@@ -429,6 +377,7 @@ body {
     opacity: 0.5;
     color: inherit;
     text-decoration: none;
+    font-weight: var(--lwa-font-weight);
 }
 
 .library-item-timestamp:hover {
@@ -441,47 +390,21 @@ body {
 }
 
 .library-empty {
-    color: var(--ui-font-color);
+    color: var(--lwa-font-color);
     opacity: 0.7;
     padding: 1rem;
     text-align: center;
 }
 
 .modal input[type="text"] {
-    background-color: var(--ui-background-color);
-    border: 1px solid var(--ui-border-color);
-    box-sizing: border-box;
-    color: var(--ui-font-color);
-    font-family: inherit;
-    font-size: inherit;
-    padding: 0.5rem;
     width: 100%;
 }
 
-.modal input[type="text"]:focus {
-    outline: none;
-    border-color: var(--ui-font-color);
-}
-
 #import-error {
-    color: var(--ui-error-color);
-    font-weight: var(--ui-font-weight);
-    font-size: var(--ui-font-size);
+    color: var(--dg-error-color);
+    font-weight: var(--lwa-font-weight);
+    font-size: var(--lwa-font-size);
     margin-bottom: 1rem;
-}
-
-kbd {
-    background-color: var(--ui-button-color);
-    border: 1px solid #b4b4b4;
-    box-shadow: 0 1px 1px rgb(0 0 0 / 0.2), 0 2px 0 0 rgb(255 255 255 / 0.7) inset;
-    color: var(--ui-font-color);
-    display: inline-block;
-    font-size: 0.7rem;
-    font-weight: 700;
-    line-height: 1;
-    margin: 3px;
-    padding: 2px 4px;
-    white-space: nowrap;
 }
 
 /* Touch-screen-only devices and small screens */
@@ -507,15 +430,6 @@ only screen and (max-width: 1280px) {
     #diagram-name {
         font-size: 1.0rem;
         font-weight: bold;
-    }
-
-    .dg-button {
-        font-size: var(--mobile-ui-font-size);
-    }
-
-    .dg-button-group {
-        height: 32px;
-        min-height: 32px;
     }
 
     .dg-button.fixed-width {

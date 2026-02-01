@@ -29,9 +29,9 @@
     <div id="notification-overlay"></div>
 
     <div id="help-modal" class="modal">
-        <div class="modal-dialog">
-            <div class="modal-title" id="help-title">
-                <h1 class="title">Diagrama</h1>
+        <div class="modal-dialog" id="help-content">
+            <div class="modal-bar" id="help-title">
+                <div class="title">Diagrama</div>
                 <button class="dg-button close-modal" id="close-help">
                     <span class="material-symbols-rounded">close</span>
                 </button>
@@ -187,9 +187,8 @@
 
     <div id="export-modal" class="modal">
         <div class="modal-dialog" id="export-content">
-
-            <div class="modal-title" id="export-title">
-                <h1 class="title">Export</h1>
+            <div class="modal-bar" id="export-title">
+                <div class="title">Export</div>
                 <button class="dg-button close-modal" id="close-export">
                     <span class="material-symbols-rounded">close</span>
                 </button>
@@ -200,7 +199,7 @@
                         <strong>PNG scale</strong>:
                         <span id="png-export-scale-value">2</span>
                         <br />
-                        <input id="png-export-scale" type="range" min="1" max="100" value="2" style="width: 100%" />
+                        <input id="png-export-scale" type="range" min="1" max="100" value="2" />
                     </label>
                     <small id="scale-warning">
                         <p>
@@ -230,8 +229,8 @@
 
     <div id="library-modal" class="modal">
         <div class="modal-dialog" id="library-content">
-            <div class="modal-title" id="library-title">
-                <h1 class="title">Library</h1>
+            <div class="modal-bar" id="library-title">
+                <div class="title">Library</div>
                 <button class="dg-button close-modal" id="close-library">
                     <span class="material-symbols-rounded">close</span>
                 </button>
@@ -244,8 +243,8 @@
 
     <div id="import-modal" class="modal">
         <div class="modal-dialog" id="import-content">
-            <div class="modal-title" id="import-title">
-                <h1 class="title">Import diagram</h1>
+            <div class="modal-bar" id="import-title">
+                <div class="title">Import diagram</div>
                 <button class="dg-button close-modal" id="close-import">
                     <span class="material-symbols-rounded">close</span>
                 </button>
