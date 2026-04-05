@@ -9,10 +9,14 @@ mermaid.registerLayoutLoaders(elkLayouts);
 
 export async function renderDiagram(code, element) {
     try {
-        const {svg} = await mermaid.render('diagram-svg', code)
+        const {svg} = await mermaid.render('diagram-svg', code, element)
         element.innerHTML = svg;
         const svgElement = element.querySelector('#diagram-svg');
         if (svgElement) {
+            // Remove Gantt "today" marker lines that can extend far off-screen.
+            if (svgElement.getAttribute('aria-roledescription') === 'gantt') {
+                svgElement.querySelectorAll('.today').forEach(el => el.remove());
+            }
             // Make SVG fill its parent without scrollbars.
             svgElement.style.width = '100%';
             svgElement.style.height = '100%';

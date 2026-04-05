@@ -204,12 +204,13 @@ body {
     padding: 0.5rem 1rem;
 }
 
-/* Mermaid seems to render the diagram in another container when loading the
-page (we use #diagram-svg in the code, not #ddiagram-svg). This rule ensures
-this container does not flash when the page loads. */
+/* Mermaid creates a temporary container with id d{id} during rendering (we
+render with id diagram-svg, so the container is ddiagram-svg). This rule hides
+it to prevent a flash when the page loags, but must not collapse its width, as
+some diagram types (e.g. Gantt) use D3 scales that measure the container. */
 #ddiagram-svg {
-    width: 0px;
-    height: 0px;
+    overflow: hidden;
+    height: 0;
 }
 
 #diagram-error {
