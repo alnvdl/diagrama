@@ -129,6 +129,10 @@ body {
     caret-color: transparent;
 }
 
+.dg-button {
+    line-height: 1;
+}
+
 .dg-button.fixed-width {
     width: 5.5rem;
 }
