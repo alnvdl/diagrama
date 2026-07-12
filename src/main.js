@@ -428,6 +428,7 @@ function closeHelp() {
 
 // Create.
 document.getElementById('open-create').addEventListener('click', showCreate);
+document.getElementById('open-create-library').addEventListener('click', showCreate);
 document.getElementById('close-create').addEventListener('click', closeCreate);
 document.getElementById('create-name').addEventListener('input', onCreateNameChanged);
 document.getElementById('create-name').addEventListener('keydown', onCreateNameKeyDown);
