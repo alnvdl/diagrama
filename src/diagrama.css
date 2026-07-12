@@ -314,7 +314,7 @@ some diagram types (e.g. Gantt) use D3 scales that measure the container. */
 }
 
 .modal ul {
-    list-style-type: "🢒 ";
+    list-style-type: "⏵  ";
 }
 
 #help-content {
@@ -433,7 +433,7 @@ only screen and (max-width: 1280px) {
     }
 
     #diagram-name {
-        font-size: 1.0rem;
+        font-size: var(--lwa-font-size);
         font-weight: bold;
     }
 
