@@ -326,7 +326,7 @@ some diagram types (e.g. Gantt) use D3 scales that measure the container. */
 }
 
 #export-content {
-    width: 512px;
+    width: 640px;
 }
 
 #import-content {
@@ -334,6 +334,10 @@ some diagram types (e.g. Gantt) use D3 scales that measure the container. */
 }
 
 #library-content {
+    width: 512px;
+}
+
+#create-content {
     width: 512px;
 }
 
@@ -405,7 +409,7 @@ some diagram types (e.g. Gantt) use D3 scales that measure the container. */
     width: 100%;
 }
 
-#import-error {
+#create-error, #import-error {
     color: var(--dg-error-color);
     font-weight: var(--lwa-font-weight);
     font-size: var(--lwa-font-size);

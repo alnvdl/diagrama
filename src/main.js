@@ -157,10 +157,11 @@ function currentDiagram() {
 }
 
 // updateCurrentDiagram patches the in-memory data objects representing the
-// diagram, updates the UI accordingly and triggers a call to persiste the
+// diagram, updates the UI accordingly and triggers a call to persist the
 // state. It is an async function because it may need to trigger a re-render
-// of the diagram. forceRender can be used to force a re-render.
-async function updateCurrentDiagram(patch, forceRender) {
+// of the diagram. forceRender can be used to force a re-render. isNew
+// indicates a new diagram is being created.
+async function updateCurrentDiagram(patch, forceRender, isNew) {
     // The only way to switch out of an imported diagram is to go to view mode.
     if (importedDiagram && patch.mode !== "view") {
         return;
@@ -175,24 +176,18 @@ async function updateCurrentDiagram(patch, forceRender) {
         prevDiagram = importedDiagram || diagrams[currentDiagramName];
         importedDiagram = null;
 
-        // If we are not dealing with an imported diagram, update the
-        // currentDiagramName if the name changes.
-        if (patch.name && patch.name !== currentDiagramName) {
-            currentDiagramName = patch.name;
-        }
-
-        diagrams[currentDiagramName] = Object.assign(defaultDiagram(), diagrams[currentDiagramName], patch);
+        // Update currentDiagramName if the name changes.
+        let nameChanged = patch.name && patch.name !== currentDiagramName
+        currentDiagramName = nameChanged ? patch.name : currentDiagramName;
+        diagrams[currentDiagramName] = Object.assign(defaultDiagram(), prevDiagram, patch);
         curDiagram = diagrams[currentDiagramName];
-    }
-
-
-    // Side-effect 1: detect name change and update the UI.
-    if (!prevDiagram || prevDiagram.name !== curDiagram.name) {
-        setName(curDiagram.name);
-        if (!!prevDiagram?.name) {
-            showNotification(`Created "${curDiagram.name}"`, true);
+        if (prevDiagram && nameChanged && !isNew) {
+            delete diagrams[prevDiagram.name];
         }
     }
+
+    // Side-effect 1: update the diagram name.
+    setName(curDiagram.name);
 
     // Side-effect 2: detect content change without a name change and update
     // the last modified timestamp.
@@ -299,15 +294,27 @@ function setName(name) {
 }
 
 // Handle diagram name changes on blur.
-document.getElementById('diagram-name').addEventListener('blur', async function(e) {
-    if (e.target.value !== currentDiagramName) {
-        let newDiagram = Object.assign(defaultDiagram(), currentDiagram(), {
-            name: e.target.value,
-            content: monacoEditor.getValue(),
-            lastModified: new Date().toISOString()
-        });
-        await updateCurrentDiagram(newDiagram, true);
+function getName() {
+    let name = document.getElementById('diagram-name').value.trim();
+    if (name === "") {
+        return currentDiagramName;
     }
+    if (name !== currentDiagramName && diagrams[name]) {
+        showNotification(`A diagram with the name "${name}" already exists. Please choose a different name.`, false);
+        return currentDiagramName;
+    }
+    return name;
+}
+
+document.getElementById('diagram-name').addEventListener('blur', async function(e) {
+    if (e.target.value === currentDiagramName) {
+        return;
+    }
+    await updateCurrentDiagram({
+        name: getName(),
+        content: monacoEditor.getValue(),
+        lastModified: new Date().toISOString()
+    }, true);
 });
 
 // App-wide keyboard shorcuts.
@@ -326,7 +333,7 @@ document.addEventListener('keydown', async function(e) {
         };
         updateCurrentDiagram({
             mode: currentDiagram().mode === 'view' ? 'edit' : 'view',
-            name: document.getElementById('diagram-name').value,
+            name: getName(),
             content: monacoEditor.getValue()
         });
     }
@@ -344,7 +351,7 @@ document.addEventListener('keydown', async function(e) {
         e.preventDefault();
         closeModals();
         await updateCurrentDiagram({
-            name: document.getElementById('diagram-name').value,
+            name: getName(),
             content: monacoEditor.getValue(),
         });
         export_('png', true);
@@ -392,16 +399,17 @@ document.getElementById('set-mode-edit').addEventListener('click', function() {
 document.getElementById('set-mode-view').addEventListener('click', function() {
     updateCurrentDiagram({
         mode: 'view',
-        name: document.getElementById('diagram-name').value,
+        name: getName(),
         content: monacoEditor.getValue()
     });
 });
 
 function closeModals() {
-    closeHelp();
-    closeLibrary();
+    closeCreate();
     closeExport();
+    closeHelp();
     closeImport();
+    closeLibrary();
 }
 
 // Help.
@@ -418,6 +426,77 @@ function closeHelp() {
     document.getElementById('help-modal').style.display = 'none';
 }
 
+// Create.
+document.getElementById('open-create').addEventListener('click', showCreate);
+document.getElementById('close-create').addEventListener('click', closeCreate);
+document.getElementById('create-name').addEventListener('input', onCreateNameChanged);
+document.getElementById('create-name').addEventListener('keydown', onCreateNameKeyDown);
+document.getElementById("create-confirm").addEventListener('click', doCreate);
+
+async function showCreate() {
+    closeModals();
+    await updateCurrentDiagram({
+        name: getName(),
+        content: monacoEditor.getValue()
+    });
+
+    clearCreateError();
+    let modal = document.getElementById('create-modal');
+    modal.style.display = 'flex';
+    document.getElementById('create-name').focus();
+}
+
+async function closeCreate() {
+    document.getElementById('create-modal').style.display = 'none';
+}
+
+function doCreate() {
+    const nameInput = document.getElementById('create-name');
+    const newName = nameInput.value.trim();
+    if (!newName) {
+        showCreateError("Please enter a diagram name.");
+        return;
+    };
+    if (diagrams[newName]) {
+        showCreateError("A diagram with this name already exists, please choose a different name.");
+        return;
+    }
+    let newDiagram = defaultDiagram();
+    newDiagram.name = newName;
+    newDiagram.mode = 'edit';
+    importedDiagram = null;
+    updateCurrentDiagram(newDiagram, true, true);
+    closeCreate();
+    nameInput.value = '';
+    showNotification(`Created "${newDiagram.name}"`, true);
+};
+
+function clearCreateError() {
+    const errorDiv = document.getElementById('create-error');
+    errorDiv.textContent = '';
+    const button = document.getElementById('create-confirm');
+    const icon = button.querySelector('.material-symbols-rounded');
+    icon.textContent = 'library_add';
+    const label = button.querySelector('.label');
+    label.textContent = 'Create diagram';
+}
+
+function showCreateError(message) {
+    const errorDiv = document.getElementById('create-error');
+    errorDiv.textContent = message;
+}
+
+function onCreateNameChanged() {
+    clearCreateError();
+}
+
+function onCreateNameKeyDown(e) {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        document.getElementById('create-confirm').click();
+    }
+}
+
 // Library.
 document.getElementById('open-library').addEventListener('click', showLibrary);
 document.getElementById('close-library').addEventListener('click', closeLibrary);
@@ -425,7 +504,7 @@ document.getElementById('close-library').addEventListener('click', closeLibrary)
 async function showLibrary() {
     closeModals();
     await updateCurrentDiagram({
-        name: document.getElementById('diagram-name').value,
+        name: getName(),
         content: monacoEditor.getValue()
     });
     renderLibraryList();
@@ -623,17 +702,18 @@ function deleteDiagram(name) {
 // Import.
 document.getElementById('close-import').addEventListener('click', closeImport);
 document.getElementById('set-mode-import').addEventListener('click', showImport);
-document.getElementById('import-confirm').addEventListener('click', confirmImport);
-document.getElementById('import-diagram-name').addEventListener('input', onImportNameChanged);
+document.getElementById('import-confirm').addEventListener('click', doImport);
+document.getElementById('import-name').addEventListener('input', onImportNameChanged);
+document.getElementById('import-name').addEventListener('keydown', onImportNameKeyDown);
 
 async function showImport() {
     closeModals();
-    const nameInput = document.getElementById('import-diagram-name');
+    const nameInput = document.getElementById('import-name');
     nameInput.value = generateImportName(currentDiagram().name);
     clearImportError();
-    nameInput.focus();
     let modal = document.getElementById('import-modal');
     modal.style.display = 'flex';
+    nameInput.focus();
 }
 
 function closeImport() {
@@ -685,8 +765,15 @@ function onImportNameChanged() {
     clearImportError();
 }
 
-async function confirmImport() {
-    const nameInput = document.getElementById('import-diagram-name');
+function onImportNameKeyDown(e) {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        document.getElementById('import-confirm').click();
+    }
+}
+
+async function doImport() {
+    const nameInput = document.getElementById('import-name');
     const importName = nameInput.value.trim();
 
     if (!importName) {
@@ -720,7 +807,7 @@ async function confirmImport() {
 
 async function performImport(importName) {
     const data = Object.assign(defaultDiagram(), currentDiagram(), {name: importName, mode: "view"});
-    await updateCurrentDiagram(data, true);
+    await updateCurrentDiagram(data, true, true);
     closeImport();
     showNotification(`Imported "${importName}"`, true);
 }
@@ -753,7 +840,7 @@ function closeExport() {
 document.getElementById("copy").addEventListener('click', async function(ev) {
     if (exporting) return;
     await updateCurrentDiagram({
-        name: document.getElementById('diagram-name').value,
+        name: getName(),
         content: monacoEditor.getValue()
     });
     export_('png', true);
@@ -793,7 +880,7 @@ async function export_(formatID, clipboard) {
     }
 
     await updateCurrentDiagram({
-        name: document.getElementById('diagram-name').value,
+        name: getName(),
         content: monacoEditor.getValue()
     });
     const svgElem = document.querySelector('#diagram-svg');
@@ -835,7 +922,7 @@ async function export_(formatID, clipboard) {
         exporting = false;
     };
 
-    let name = document.getElementById('diagram-name').value.trim() || 'Diagrama';
+    let name = getName().trim() || 'Diagrama';
     if (!name.toLowerCase().endsWith(format.ext)) name += format.ext;
     // Obtain the scale directly from the element to ensure it works even in
     // import mode, where the scale is not updated by updateCurrentDiagram.
@@ -850,7 +937,7 @@ async function share() {
     closeHelp();
     await updateCurrentDiagram({
         mode: "view",
-        name: document.getElementById('diagram-name').value,
+        name: getName(),
         content: monacoEditor.getValue(),
     });
     let ok = true;

@@ -254,7 +254,7 @@
                     <label>
                         <strong>Diagram name</strong>:
                         <br />
-                        <input id="import-diagram-name" type="text" />
+                        <input id="import-name" type="text" />
                     </label>
                 </p>
                 <div id="import-error"></div>
@@ -262,6 +262,33 @@
                     <button class="dg-button" id="import-confirm">
                         <span class="material-symbols-rounded">upload</span>
                         <span class="label">Import</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="create-modal" class="modal">
+        <div class="modal-dialog" id="create-content">
+            <div class="modal-bar" id="create-title">
+                <div class="title">Create diagram</div>
+                <button class="dg-button close-modal" id="close-create">
+                    <span class="material-symbols-rounded">close</span>
+                </button>
+            </div>
+            <div class="modal-content">
+                <p>
+                    <label>
+                        <strong>Diagram name</strong>:
+                        <br />
+                        <input id="create-name" type="text" placeholder="Enter a diagram name" />
+                    </label>
+                </p>
+                <div id="create-error"></div>
+                <div class="dg-button-group full-width">
+                    <button class="dg-button" id="create-confirm">
+                        <span class="material-symbols-rounded">library_add</span>
+                        <span class="label">Create diagram</span>
                     </button>
                 </div>
             </div>
@@ -292,6 +319,10 @@
                 </button>
             </div>
             <div class="dg-button-group">
+                <button class="dg-button fixed-width" id="open-create">
+                    <span class="material-symbols-rounded">library_add</span>
+                    <span class="label collapse">New</span>
+                </button>
                 <button class="dg-button fixed-width" id="open-library">
                     <span class="material-symbols-rounded">list</span>
                     <span class="label collapse">Library</span>
