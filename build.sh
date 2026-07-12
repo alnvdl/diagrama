@@ -16,7 +16,7 @@ step() {
 }
 
 step "Installing dependencies..."
-npm install
+npm ci
 
 vendor_material_symbols_font() {
     mkdir -p src/material-symbols
