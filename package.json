@@ -11,11 +11,11 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "@mermaid-js/layout-elk": "0.2.0",
-    "mermaid": "11.12.2",
+    "@mermaid-js/layout-elk": "0.2.2",
+    "mermaid": "11.16.0",
     "monaco-editor": "0.55.1"
   },
   "devDependencies": {
-    "esbuild": "0.27.2"
+    "esbuild": "0.28.1"
   }
 }
