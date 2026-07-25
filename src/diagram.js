@@ -7,6 +7,9 @@ mermaid.initialize({
 });
 mermaid.registerLayoutLoaders(elkLayouts);
 
+// renderDiagram renders the given Mermaid code into the given HTML element.
+// It returns true if the diagram was rendered successfully, or false if there
+// was an error.
 export async function renderDiagram(code, element) {
     try {
         const {svg} = await mermaid.render('diagram-svg', code, element)
@@ -26,6 +29,7 @@ export async function renderDiagram(code, element) {
             svgElement.style.overflow = 'hidden';
             enablePanZoom(svgElement);
         }
+        return true;
     } catch (e) {
         // Clear the element and add error message.
         while (element.firstChild) {
@@ -36,6 +40,7 @@ export async function renderDiagram(code, element) {
         errorPre.textContent = String(e);
         element.appendChild(errorPre);
     }
+    return false;
 }
 
 function enablePanZoom(svg) {

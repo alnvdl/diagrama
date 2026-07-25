@@ -57,6 +57,9 @@ let importedDiagram;
 // multiple exports at the same time.
 let exporting = false;
 
+// inError indicates the diagram failed to render.
+let inError = false;
+
 // notificationOverlayTimeout holds the timeout ID for hiding the notification
 // overlay.
 let notificationOverlayTimeout;
@@ -116,7 +119,7 @@ function loadState() {
             if (result) return result;
         } catch (e) {
             console.error(e);
-            // Ignore and try next.
+            // Ignore and try the next strategy.
         }
     }
 }
@@ -198,7 +201,8 @@ async function updateCurrentDiagram(patch, forceRender, isNew) {
     // Side-effect 3: detect content change, re-render the diagram and update
     // the editor.
     if (forceRender || !prevDiagram || prevDiagram.content !== curDiagram.content) {
-        await renderDiagram(withIconElements(curDiagram.content), document.querySelector('#diagram'));
+        let success = await renderDiagram(withIconElements(curDiagram.content), document.querySelector('#diagram'));
+        inError = !success;
 
         if (monacoEditor && monacoEditor.getValue() !== curDiagram.content) {
             const pos = monacoEditor.getPosition();
@@ -345,7 +349,7 @@ document.addEventListener('keydown', async function(e) {
     }
     // Copy the diagram to the clipboard with Ctrl+C.
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'c') {
-        if (editing) {
+        if (editing || inError) {
             return
         }
         e.preventDefault();
@@ -378,7 +382,7 @@ document.addEventListener('keydown', async function(e) {
 
     // Open export with Ctrl+X.
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'x') {
-        if (editing) {
+        if (editing || inError) {
             return
         }
         e.preventDefault();
@@ -884,9 +888,9 @@ async function export_(formatID, clipboard) {
         name: getName(),
         content: monacoEditor.getValue()
     });
-    const svgElem = document.querySelector('#diagram-svg');
-    if (!svgElem) {
-        alert('No diagram to export.');
+
+    if (inError) {
+        showNotification("No diagram to export", false);
         return;
     }
 
@@ -928,7 +932,7 @@ async function export_(formatID, clipboard) {
     // Obtain the scale directly from the element to ensure it works even in
     // import mode, where the scale is not updated by updateCurrentDiagram.
     let scale = document.getElementById('png-export-scale').value;
-    format.fn(currentDiagram().content, scale, svgElem, name, clipboard, doneCallback);
+    format.fn(currentDiagram().content, scale, document.querySelector('#diagram-svg'), name, clipboard, doneCallback);
 }
 
 // Share.
