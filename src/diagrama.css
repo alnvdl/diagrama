@@ -165,6 +165,7 @@ body {
 
 #notification-overlay {
     background: var(--lwa-font-color);
+    border-radius: var(--lwa-border-radius);
     color: var(--dg-background-color);
     font-size: var(--lwa-font-size);
     font-weight: var(--lwa-font-weight);
@@ -256,6 +257,7 @@ some diagram types (e.g. Gantt) use D3 scales that measure the container. */
 .modal-dialog {
     background: var(--dg-background-color);
     border: 1px solid var(--lwa-border-color);
+    border-radius: var(--lwa-border-radius);
     font-size: var(--dg-modal-font-size);
     overflow-y: auto;
     position: relative;
