@@ -230,7 +230,7 @@ function setMode(mode) {
     if (mode === 'edit') {
         appGrid.classList.replace('view-mode', 'edit-mode');
         appGrid.classList.replace('import-mode', 'edit-mode');
-        editor.classList.remove('hidden');
+        editor.hidden = false;
         if (diagramNameElem) {
             diagramNameElem.readOnly = false;
             diagramNameElem.classList.remove('no-caret');
@@ -241,7 +241,7 @@ function setMode(mode) {
     } else if (mode === 'view') {
         appGrid.classList.replace('edit-mode', 'view-mode');
         appGrid.classList.replace('import-mode', 'view-mode');
-        editor.classList.add('hidden');
+        editor.hidden = true;
         if (diagramNameElem) {
             diagramNameElem.blur();
             diagramNameElem.readOnly = true;
@@ -250,7 +250,7 @@ function setMode(mode) {
     } else if (mode === 'import') {
         appGrid.classList.replace('edit-mode', 'import-mode');
         appGrid.classList.replace('view-mode', 'import-mode');
-        editor.classList.add('hidden');
+        editor.hidden = true;
         if (diagramNameElem) {
             diagramNameElem.blur();
             diagramNameElem.readOnly = true;
@@ -264,17 +264,17 @@ function setMode(mode) {
     const importButton = document.getElementById('set-mode-import');
     if (editButton && viewButton && importButton) {
         if (mode === 'edit') {
-            editButton.classList.add('hidden');
-            viewButton.classList.remove('hidden');
-            importButton.classList.add('hidden');
+            editButton.hidden = true;
+            viewButton.hidden = false;
+            importButton.hidden = true;
         } else if (mode === 'view') {
-            editButton.classList.remove('hidden');
-            viewButton.classList.add('hidden');
-            importButton.classList.add('hidden');
+            editButton.hidden = false;
+            viewButton.hidden = true;
+            importButton.hidden = true;
         } else if (mode === 'import') {
-            editButton.classList.add('hidden');
-            viewButton.classList.add('hidden');
-            importButton.classList.remove('hidden');
+            editButton.hidden = true;
+            viewButton.hidden = true;
+            importButton.hidden = false;
         }
     }
 }

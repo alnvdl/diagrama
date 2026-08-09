@@ -137,10 +137,6 @@ body {
     width: 5.5rem;
 }
 
-.dg-button.hidden {
-    display: none !important;
-}
-
 .dg-button .material-symbols-rounded,
 .dg-button-group .material-symbols-rounded {
     font-size: 20px;
@@ -198,7 +194,7 @@ body {
     z-index: 2;
 }
 
-#editor.hidden>.monaco-editor {
+#editor[hidden]>.monaco-editor {
     display: none;
 }
 
