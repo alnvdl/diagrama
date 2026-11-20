@@ -9,16 +9,16 @@ import './diagrama.css';
 const defaultContent = `---
 config:
   flowchart:
-    curve: linear
+    wrappingWidth: 180
 ---
 flowchart TB
-    step1[Learn the <a href="https://mermaid.js.org/intro/"
+    step1[Learn the<br/><a href="https://mermaid.js.org/intro/"
           target="_blank">Mermaid syntax</a>]
     step2[Click !!edit!! Edit<br/>to enter edit mode]
     step3[Modify the diagram code]
     step4[Press <kbd>Ctrl</kbd>+<kbd>Enter</kbd> to update the diagram]
     step5[Click !!visibility!! View<br/>to enter view mode]
-    step6[Click !!share!! Share<br/>to get a link to the diagram]
+    step6[Click !!share!! Share<br/>to get a link]
     step7[Bookmark or save the link to edit again later]
     step8[Export the diagram as SVG or PNG]
 
@@ -28,7 +28,8 @@ flowchart TB
     step4 --> step5
     step5 --> step6
     step5 --> step8
-    step6 --> step7`;
+    step6 --> step7
+`;
 const defaultScale = 2; // Good results with reasonable file sizes.
 const defaultDiagram = () => {
     return {

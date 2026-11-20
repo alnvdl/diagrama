@@ -230,7 +230,8 @@ some diagram types (e.g. Gantt) use D3 scales that measure the container. */
 }
 
 #diagram-svg .material-symbols-rounded {
-    vertical-align: text-bottom;
+    vertical-align: middle;
+    font-size: inherit;
 }
 
 /* End of exported diagram styles. */

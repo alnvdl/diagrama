@@ -1,11 +1,10 @@
 import mermaid from 'mermaid';
-import elkLayouts from '@mermaid-js/layout-elk';
 
 mermaid.initialize({
     fontFamily: "system-ui",
-    theme: 'neutral'
+    theme: "neutral",
+    look: "classic",
 });
-mermaid.registerLayoutLoaders(elkLayouts);
 
 // renderDiagram renders the given Mermaid code into the given HTML element.
 // It returns true if the diagram was rendered successfully, or false if there
