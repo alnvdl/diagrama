@@ -101,6 +101,15 @@ const liveRenderDelayFactor = 1.5;
 // lastRender holds the promise of the most recent render. It never rejects.
 let lastRender = Promise.resolve();
 
+// lastRenderWidth is the width of the staging element when the most recent
+// render started. Mermaid lays out some diagrams (e.g., Gantt charts) based on
+// it, so a diagram is stale if the width has changed since.
+let lastRenderWidth = 0;
+
+// restageTimeout holds the timeout ID for the debounced re-render triggered by
+// a change in the staging element width.
+let restageTimeout;
+
 // applyingEditorContent is true while the editor content is being set by the
 // app, as opposed to being typed by the user.
 let applyingEditorContent = false;
@@ -316,6 +325,7 @@ async function renderDiagramView(content, incremental) {
     clearTimeout(liveRenderTimeout);
     const version = ++contentVersion;
     const start = performance.now();
+    lastRenderWidth = document.getElementById("diagram-staging").clientWidth;
 
     lastRender = (async () => {
         const result = await renderDiagram(
@@ -1148,6 +1158,20 @@ function hideNotification(msg) {
     clearTimeout(notificationOverlayTimeout);
     overlay.classList.remove('show');
 }
+
+// Re-render the diagram when the width it is laid out for changes (e.g., the
+// window was resized), as the diagram on display would otherwise be a scaled
+// version of one laid out for a different width. This also runs after the
+// editor slide transition, in case the staging width ever depends on it.
+new ResizeObserver(() => {
+    clearTimeout(restageTimeout);
+    restageTimeout = setTimeout(() => {
+        const width = document.getElementById("diagram-staging").clientWidth;
+        const diagram = currentDiagram();
+        if (!diagram || width === lastRenderWidth) return;
+        renderDiagramView(diagram.content, true);
+    }, 200);
+}).observe(document.getElementById("diagram-staging"));
 
 // Auto-adjust editor font on resize.
 new ResizeObserver(() => {

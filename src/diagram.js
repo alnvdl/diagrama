@@ -39,10 +39,12 @@ export async function checkDiagram(code) {
 // visible, and is only swapped into element once it is complete, so there is
 // no flash while updating.
 //
+// The pan/zoom state is always reset, so the new diagram is displayed centered
+// and fitted to the element.
+//
 // If incremental is true, the new diagram is considered an update of the one
-// being displayed: the pan/zoom state is preserved and, in case of an error,
-// the last successful render is left untouched. Otherwise, the element is
-// cleared in case of an error.
+// being displayed: in case of an error, the last successful render is left
+// untouched. Otherwise, the element is cleared in case of an error.
 //
 // It returns {ok: true} if the diagram was rendered successfully, or
 // {ok: false, error} with the error message otherwise.
@@ -58,15 +60,6 @@ export async function renderDiagram(code, element, stagingElement, incremental) 
             element.replaceChildren();
         }
         return {ok: false, error: errorMessage(e)};
-    }
-
-    // Capture the pan/zoom state as late as possible, since the user could
-    // have changed it while the diagram was being rendered.
-    let view = null;
-    const previous = incremental ? element.querySelector("#" + svgID) : null;
-    if (previous?.dataset.userView) {
-        const {x, y, width, height} = previous.viewBox.baseVal;
-        view = {x, y, width, height};
     }
 
     // Swapping everything in a single synchronous step prevents any flash.
@@ -85,25 +78,8 @@ export async function renderDiagram(code, element, stagingElement, incremental) 
         svgElement.style.display = "block";
         svgElement.style.overflow = "hidden";
         enablePanZoom(svgElement);
-
-        // Restore the pan/zoom state, unless it would leave the user looking
-        // at nothing (e.g., the diagram changed completely).
-        const viewBox = svgElement.viewBox.baseVal;
-        if (view && viewsOverlap(view, viewBox)) {
-            viewBox.x = view.x;
-            viewBox.y = view.y;
-            viewBox.width = view.width;
-            viewBox.height = view.height;
-            svgElement.dataset.userView = "true";
-        }
     }
     return {ok: true};
-}
-
-// viewsOverlap returns true if the two rectangles overlap.
-function viewsOverlap(a, b) {
-    return a.x < b.x + b.width && a.x + a.width > b.x &&
-        a.y < b.y + b.height && a.y + a.height > b.y;
 }
 
 function enablePanZoom(svg) {
@@ -132,9 +108,6 @@ function enablePanZoom(svg) {
         let dy = (e.clientY - start.y) * viewBox.height / renderHeight;
         viewBox.x = last.x - dx;
         viewBox.y = last.y - dy;
-        // Remember the view was changed by the user, so it can be preserved
-        // when the diagram is updated.
-        svg.dataset.userView = "true";
     }
     function onMouseUp() {
         isPanning = false;
@@ -174,6 +147,5 @@ function enablePanZoom(svg) {
         viewBox.y = my - (my - viewBox.y) * scale;
         viewBox.width = newW;
         viewBox.height = newH;
-        svg.dataset.userView = "true";
     }, {passive: false});
 }

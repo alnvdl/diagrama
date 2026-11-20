@@ -102,6 +102,8 @@ body {
     grid-area: header;
     min-height: 0;
     padding: 1rem;
+    /* Allows the diagram name font size to be relative to the header width. */
+    container-type: inline-size;
 }
 
 #diagram-name {
@@ -109,7 +111,8 @@ body {
     border: none !important;
     color: var(--lwa-font-color);
     flex: 1 1 auto;
-    font-size: 1.5rem;
+    /* Scales smoothly with the header width, without breakpoints. */
+    font-size: clamp(1.2rem, 2.5cqw, 1.5rem);
     font-weight: var(--lwa-font-weight);
     max-width: unset;
     min-width: 0;
@@ -225,15 +228,20 @@ normal. */
 /* Mermaid renders new versions of the diagram here before they replace the
 diagram on display. It must be laid out, with the same size as the canvas, as
 Mermaid measures the diagram while rendering (e.g., Gantt charts use D3 scales
-based on the container width). But it must never be seen. */
+based on the container width). But it must never be seen. Its width does not
+depend on the mode (the editor pane being open or closed), so that the diagram
+is laid out the same way in view and edit modes. */
 #diagram-staging {
+    bottom: 0;
     box-sizing: border-box;
-    inset: 0;
+    left: 0;
     overflow: hidden;
     padding: 0.5rem 1rem;
     pointer-events: none;
     position: absolute;
+    top: 0;
     visibility: hidden;
+    width: 100dvw;
     z-index: -1;
 }
 
@@ -487,7 +495,6 @@ only screen and (max-width: 1280px) {
     }
 
     #diagram-name {
-        font-size: var(--lwa-font-size);
         font-weight: bold;
     }
 
