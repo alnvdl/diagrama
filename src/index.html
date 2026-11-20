@@ -75,7 +75,7 @@
                         </tr>
                         <tr>
                             <td><kbd>Ctrl</kbd>+<kbd>Enter</kbd></td>
-                            <td>update diagram based on the code</td>
+                            <td>re-render the diagram immediately</td>
                         </tr>
                         <tr>
                             <td><kbd>Ctrl</kbd>+<kbd>S</kbd></td>
@@ -336,6 +336,9 @@
         </div>
         <div id="editor" hidden></div>
         <div id="diagram">
+            <div id="diagram-canvas"></div>
+            <div id="diagram-staging" aria-hidden="true"></div>
+            <div id="diagram-error" hidden></div>
         </div>
     </div>
     <script src="./diagrama.js"></script>

@@ -1,6 +1,6 @@
 import {fromB64, toB64} from './b64.js';
 import {initEditor, setEditorFontSize} from './editor.js';
-import {renderDiagram} from './diagram.js';
+import {checkDiagram, renderDiagram} from './diagram.js';
 import {withIconElements} from './icons.js';
 import {pngExport, svgExport} from './export.js';
 
@@ -68,6 +68,37 @@ let notificationOverlayTimeout;
 // saveStateTimeout holds the timeout ID for debouncing saveState operations.
 let saveStateTimeout;
 
+// saveStateDelay is how long (in ms) saveState operations are deferred, so that
+// continuous changes (e.g., typing) result in a single save.
+const saveStateDelay = 300;
+
+// contentVersion is incremented whenever the content to display changes (be it
+// from typing or from an update). The results of asynchronous operations that
+// finish after a newer version was issued are outdated and must not change
+// the error state.
+let contentVersion = 0;
+
+// liveRenderTimeout holds the timeout ID for the debounced live render.
+let liveRenderTimeout;
+
+// averageRenderTime is a moving average of how long (in ms) successful renders
+// take. It is used to adapt the live render delay to the diagram complexity.
+let averageRenderTime = 0;
+
+// The live render delay is proportional to the average render time, within
+// these bounds (in ms). Cheap diagrams update almost instantly, while
+// expensive ones don't get re-rendered in the middle of a burst of typing.
+const minLiveRenderDelay = 40;
+const maxLiveRenderDelay = 400;
+const liveRenderDelayFactor = 1.5;
+
+// lastRender holds the promise of the most recent render. It never rejects.
+let lastRender = Promise.resolve();
+
+// applyingEditorContent is true while the editor content is being set by the
+// app, as opposed to being typed by the user.
+let applyingEditorContent = false;
+
 // parseJSONObject tries to parse str as JSON and returns the resulting object.
 // It always returns an object, even if parsing fails or the parsed value is
 // not an object.
@@ -125,27 +156,26 @@ function loadState() {
     }
 }
 
+// saveState persists the diagrams in local storage and the current diagram in
+// the URL hash. Any pending deferred save is superseded by it.
 function saveState() {
-    // Remove the hashchange listener to avoid triggering another
-    // update based on the change we are making here.
-    window.removeEventListener('hashchange', init);
+    clearTimeout(saveStateTimeout);
+
     try {
         // Filter out diagrams in import mode before saving.
         localStorage.setItem("diagrams", JSON.stringify(diagrams));
         localStorage.setItem("lastDiagram", currentDiagramName);
 
-        // Also update the hash for URL sharing.
-        const json = JSON.stringify(currentDiagram());
-        const b64 = toB64(json);
-        window.location.hash = b64;
+        // Also update the hash for URL sharing. Using replaceState instead of
+        // setting location.hash avoids polluting the history with an entry for
+        // every change, and doesn't trigger a hashchange event. There may be no
+        // current diagram if the open one was just deleted.
+        const diagram = currentDiagram();
+        if (diagram) {
+            window.history.replaceState(null, "", "#" + toB64(JSON.stringify(diagram)));
+        }
     } catch (e) {
         console.error(e);
-    } finally {
-        // Deferring here helps prevent the hash update above from triggering a
-        // call to init.
-        setTimeout(() => {
-            window.addEventListener('hashchange', init);
-        }, 0);
     }
 }
 
@@ -199,17 +229,20 @@ async function updateCurrentDiagram(patch, forceRender, isNew) {
         curDiagram.lastModified = new Date().toISOString();
     }
 
-    // Side-effect 3: detect content change, re-render the diagram and update
-    // the editor.
+    // Side-effect 3: detect content change, update the editor and re-render
+    // the diagram.
     if (forceRender || !prevDiagram || prevDiagram.content !== curDiagram.content) {
-        let success = await renderDiagram(withIconElements(curDiagram.content), document.querySelector('#diagram'));
-        inError = !success;
-
-        if (monacoEditor && monacoEditor.getValue() !== curDiagram.content) {
-            const pos = monacoEditor.getPosition();
-            monacoEditor.setValue(curDiagram.content);
-            if (pos) monacoEditor.setPosition(pos);
-        }
+        // The editor is updated before rendering, so that anything typed while
+        // the render is in progress is never overwritten.
+        setEditorContent(curDiagram.content);
+        // An update to the diagram already on display (as opposed to switching
+        // to a different one) preserves the view and the last successful render.
+        const incremental = !!prevDiagram && !isNew && patch.mode !== "import";
+        await renderDiagramView(curDiagram.content, incremental);
+    } else {
+        // Wait for any render still in progress, so callers can rely on the
+        // diagram and on inError being up to date.
+        await lastRender;
     }
 
     // Side-effect 4: update the mode if it has changed.
@@ -219,9 +252,92 @@ async function updateCurrentDiagram(patch, forceRender, isNew) {
 
     // Side-effect 5: debounce and defer the save operation.
     clearTimeout(saveStateTimeout);
-    saveStateTimeout = setTimeout(() => {
-        saveState();
-    }, 0);
+    saveStateTimeout = setTimeout(saveState, saveStateDelay);
+}
+
+// setEditorContent sets the editor content, preserving the cursor position.
+// It does nothing if the editor already has the given content.
+function setEditorContent(content) {
+    if (!monacoEditor || monacoEditor.getValue() === content) return;
+
+    const pos = monacoEditor.getPosition();
+    applyingEditorContent = true;
+    try {
+        monacoEditor.setValue(content);
+    } finally {
+        applyingEditorContent = false;
+    }
+    if (pos) monacoEditor.setPosition(pos);
+}
+
+// liveRenderDelay returns how long to wait after the last change in the editor
+// before rendering the diagram.
+function liveRenderDelay() {
+    const delay = averageRenderTime * liveRenderDelayFactor;
+    return Math.min(maxLiveRenderDelay, Math.max(minLiveRenderDelay, delay));
+}
+
+// onEditorContentChanged is called every time the user changes the editor
+// content. Errors are reported instantly, while the diagram is updated after
+// the user pauses typing.
+function onEditorContentChanged(content) {
+    if (applyingEditorContent) return;
+
+    const version = ++contentVersion;
+    clearTimeout(liveRenderTimeout);
+
+    // Parsing is cheap compared to rendering, so it is done on every change.
+    checkDiagram(withIconElements(content)).then((error) => {
+        if (version === contentVersion) setDiagramError(error);
+    });
+
+    // Forcing the render covers the case where the content was already saved
+    // as is (see flushState).
+    liveRenderTimeout = setTimeout(() => {
+        updateCurrentDiagram({content}, true);
+    }, liveRenderDelay());
+}
+
+// renderDiagramView renders the content in the diagram view and updates the
+// error state accordingly. See renderDiagram for the meaning of incremental.
+async function renderDiagramView(content, incremental) {
+    // This render supersedes any pending live render.
+    clearTimeout(liveRenderTimeout);
+    const version = ++contentVersion;
+    const start = performance.now();
+
+    lastRender = (async () => {
+        const result = await renderDiagram(
+            withIconElements(content),
+            document.getElementById("diagram-canvas"),
+            document.getElementById("diagram-staging"),
+            incremental);
+        if (result.ok) {
+            const elapsed = performance.now() - start;
+            averageRenderTime = averageRenderTime ?
+                0.7 * averageRenderTime + 0.3 * elapsed : elapsed;
+        }
+        // A successful render is always displayed, as Mermaid renders are
+        // sequential and thus this is never older than what is on display. But
+        // the error state is only updated if the result is still current.
+        if (version === contentVersion) {
+            setDiagramError(result.ok ? null : result.error);
+        }
+    })();
+    return lastRender;
+}
+
+// setDiagramError shows the error message in the diagram view and grays out
+// the last successful render. Pass null to clear the error.
+function setDiagramError(message) {
+    inError = !!message;
+    const errorElem = document.getElementById("diagram-error");
+    // Only touch the element when needed to preserve selection and scrolling.
+    if (errorElem.textContent !== (message || "")) {
+        errorElem.textContent = message || "";
+    }
+    errorElem.hidden = !inError;
+    document.getElementById("diagram-canvas").classList.toggle("error", inError);
 }
 
 function setMode(mode) {
@@ -946,6 +1062,8 @@ async function share() {
         name: getName(),
         content: monacoEditor.getValue(),
     });
+    // Make sure the URL is up to date, as saving is normally deferred.
+    saveState();
     let ok = true;
     try {
         await navigator.clipboard.writeText(window.location.href);
@@ -986,7 +1104,8 @@ window.addEventListener("storage", ev => {
 let monacoEditor = initEditor({
     element: document.getElementById("editor"),
     initialFontSize: localStorage.getItem("fontSizeOverride"),
-    onContentChanged: (content) => updateCurrentDiagram({content}, true),
+    onContentChanged: onEditorContentChanged,
+    onRenderRequested: (content) => updateCurrentDiagram({content}, true),
     onFontSizeChanged: (fontSize) => {
         if (fontSize === null) {
             localStorage.removeItem("fontSizeOverride");
@@ -996,4 +1115,21 @@ let monacoEditor = initEditor({
     },
 });
 init();
+
+// External URL changes (e.g., the user pasting a link) update the diagram. Our
+// own URL updates use replaceState, which doesn't trigger this event.
+window.addEventListener("hashchange", init);
+
+// Don't lose changes that are still waiting to be rendered or saved.
+function flushState() {
+    const diagram = currentDiagram();
+    if (diagram && diagram.mode === "edit") {
+        diagram.content = monacoEditor.getValue();
+    }
+    saveState();
+}
+window.addEventListener("pagehide", flushState);
+document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") flushState();
+});
 

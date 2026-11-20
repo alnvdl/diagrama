@@ -200,36 +200,71 @@ body {
 
 /* Diagram */
 #diagram {
-    display: grid;
     grid-area: diagram;
-    padding: 0.5rem 1rem;
-}
-
-/* Mermaid creates a temporary container with id d{id} during rendering (we
-render with id diagram-svg, so the container is ddiagram-svg). This rule hides
-it to prevent a flash when the page loags, but must not collapse its width, as
-some diagram types (e.g. Gantt) use D3 scales that measure the container. */
-#ddiagram-svg {
     overflow: hidden;
-    height: 0;
+    position: relative;
 }
 
+/* Holds the diagram on display. */
+#diagram-canvas {
+    box-sizing: border-box;
+    display: grid;
+    height: 100%;
+    padding: 0.5rem 1rem;
+    transition: opacity var(--dg-fast-transition);
+}
+
+/* The last successful render is grayed out while there is an error. Errors
+should show up instantly, so the transition only applies when going back to
+normal. */
+#diagram-canvas.error {
+    opacity: 0.5;
+    transition: none;
+}
+
+/* Mermaid renders new versions of the diagram here before they replace the
+diagram on display. It must be laid out, with the same size as the canvas, as
+Mermaid measures the diagram while rendering (e.g., Gantt charts use D3 scales
+based on the container width). But it must never be seen. */
+#diagram-staging {
+    box-sizing: border-box;
+    inset: 0;
+    overflow: hidden;
+    padding: 0.5rem 1rem;
+    pointer-events: none;
+    position: absolute;
+    visibility: hidden;
+    z-index: -1;
+}
+
+/* Overlays the bottom of the diagram. */
 #diagram-error {
+    background: var(--dg-background-color);
+    border-top: 1px solid var(--lwa-border-color);
+    bottom: 0;
+    box-sizing: border-box;
     color: var(--dg-error-color);
     font-family: monospace;
-    overflow-x: auto;
-    padding: 0.5rem 1.5rem 0.5rem 1.5rem;
+    left: 0;
+    max-height: 50%;
+    overflow: auto;
+    padding: 0.75rem 1.5rem;
+    position: absolute;
+    right: 0;
     white-space: pre-wrap;
 }
 
 /* These styles are exported in insertIconsStylesheet, make sure to
-        update it in both places */
-#diagram-svg a {
+        update it in both places. The staging diagram must be styled like the
+        one on display, so that Mermaid measures it correctly. */
+#diagram-svg a,
+#diagram-svg-next a {
     color: inherit;
     font-weight: initial;
 }
 
-#diagram-svg .material-symbols-rounded {
+#diagram-svg .material-symbols-rounded,
+#diagram-svg-next .material-symbols-rounded {
     vertical-align: middle;
     font-size: inherit;
 }
@@ -475,7 +510,8 @@ only screen and (max-width: 1280px) {
     }
 
     /* Diagram */
-    #diagram {
+    #diagram-canvas,
+    #diagram-staging {
         padding: 0;
     }
 }
@@ -488,7 +524,8 @@ only screen and (max-width: 1280px) {
 
     .dg-button,
     .dg-button-group,
-    #editor {
+    #editor,
+    #diagram-error {
         display: none !important;
     }
 

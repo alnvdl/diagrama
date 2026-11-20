@@ -4,8 +4,8 @@ export function initEditor({
     element,
     initialFontSize,
     onContentChanged,
+    onRenderRequested,
     onFontSizeChanged,
-
 }) {
     initLang();
     initTheme();
@@ -55,9 +55,13 @@ export function initEditor({
         when: null,
     }]);
 
-    // Update data on Ctrl+Enter.
-    monacoEditor.addCommand(KeyMod.CtrlCmd | KeyCode.Enter, function() {
+    // Notify about every content change, so the diagram can be updated live.
+    monacoEditor.onDidChangeModelContent(function() {
         onContentChanged(monacoEditor.getValue());
+    });
+    // Request an immediate render on Ctrl+Enter.
+    monacoEditor.addCommand(KeyMod.CtrlCmd | KeyCode.Enter, function() {
+        onRenderRequested(monacoEditor.getValue());
     });
     // Go back to auto-font-size on Ctrl+Shift+0.
     monacoEditor.addCommand(KeyMod.CtrlCmd | KeyMod.Shift | KeyCode.Digit0, function() {
