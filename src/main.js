@@ -81,6 +81,11 @@ let contentVersion = 0;
 // liveRenderTimeout holds the timeout ID for the debounced live render.
 let liveRenderTimeout;
 
+// editorHideTimeout is the fallback timeout for hiding the editor after its
+// grid track has finished collapsing in view mode.
+let editorHideTimeout;
+let editorTransitionEndHandler;
+
 // averageRenderTime is a moving average of how long (in ms) successful renders
 // take. It is used to adapt the live render delay to the diagram complexity.
 let averageRenderTime = 0;
@@ -341,54 +346,83 @@ function setDiagramError(message) {
 }
 
 function setMode(mode) {
-    const appGrid = document.getElementById('app-grid');
-    const editor = document.getElementById('editor');
-    const diagramNameElem = document.getElementById('diagram-name');
-    if (mode === 'edit') {
-        appGrid.classList.replace('view-mode', 'edit-mode');
-        appGrid.classList.replace('import-mode', 'edit-mode');
+    const appGrid = document.getElementById("app-grid");
+    const editor = document.getElementById("editor");
+    const diagramNameElem = document.getElementById("diagram-name");
+
+    // Cancel any pending hide when the mode changes again before the slide
+    // animation has finished.
+    clearTimeout(editorHideTimeout);
+    if (editorTransitionEndHandler) {
+        appGrid.removeEventListener("transitionend", editorTransitionEndHandler);
+        editorTransitionEndHandler = null;
+    }
+
+    if (mode === "edit") {
+        appGrid.classList.replace("view-mode", "edit-mode");
+        appGrid.classList.replace("import-mode", "edit-mode");
         editor.hidden = false;
         if (diagramNameElem) {
             diagramNameElem.readOnly = false;
-            diagramNameElem.classList.remove('no-caret');
+            diagramNameElem.classList.remove("no-caret");
         }
         if (monacoEditor && document.activeElement != diagramNameElem) {
-            monacoEditor.focus()
+            monacoEditor.focus();
         };
-    } else if (mode === 'view') {
-        appGrid.classList.replace('edit-mode', 'view-mode');
-        appGrid.classList.replace('import-mode', 'view-mode');
-        editor.hidden = true;
-        if (diagramNameElem) {
-            diagramNameElem.blur();
-            diagramNameElem.readOnly = true;
-            diagramNameElem.classList.add('no-caret');
+    } else if (mode === "view") {
+        const wasEditing = appGrid.classList.contains("edit-mode");
+        appGrid.classList.replace("edit-mode", "view-mode");
+        appGrid.classList.replace("import-mode", "view-mode");
+        if (wasEditing) {
+            // Keep the editor in the grid while its track collapses, then hide
+            // it to prevent the closed editor from receiving focus.
+            editor.hidden = false;
+            const hideEditor = () => {
+                editor.hidden = true;
+                clearTimeout(editorHideTimeout);
+                appGrid.removeEventListener("transitionend", editorTransitionEndHandler);
+                editorTransitionEndHandler = null;
+            };
+            editorTransitionEndHandler = (event) => {
+                if (event.target === appGrid && event.propertyName === "grid-template-columns") {
+                    hideEditor();
+                }
+            };
+            appGrid.addEventListener("transitionend", editorTransitionEndHandler);
+            editorHideTimeout = setTimeout(hideEditor, 300);
+        } else {
+            editor.hidden = true;
         }
-    } else if (mode === 'import') {
-        appGrid.classList.replace('edit-mode', 'import-mode');
-        appGrid.classList.replace('view-mode', 'import-mode');
+        if (diagramNameElem) {
+            diagramNameElem.blur();
+            diagramNameElem.readOnly = true;
+            diagramNameElem.classList.add("no-caret");
+        }
+    } else if (mode === "import") {
+        appGrid.classList.replace("edit-mode", "import-mode");
+        appGrid.classList.replace("view-mode", "import-mode");
         editor.hidden = true;
         if (diagramNameElem) {
             diagramNameElem.blur();
             diagramNameElem.readOnly = true;
-            diagramNameElem.classList.add('no-caret');
+            diagramNameElem.classList.add("no-caret");
         }
     }
 
     // Hide the view/edit buttons based on the mode.
-    const editButton = document.getElementById('set-mode-edit');
-    const viewButton = document.getElementById('set-mode-view');
-    const importButton = document.getElementById('set-mode-import');
+    const editButton = document.getElementById("set-mode-edit");
+    const viewButton = document.getElementById("set-mode-view");
+    const importButton = document.getElementById("set-mode-import");
     if (editButton && viewButton && importButton) {
-        if (mode === 'edit') {
+        if (mode === "edit") {
             editButton.hidden = true;
             viewButton.hidden = false;
             importButton.hidden = true;
-        } else if (mode === 'view') {
+        } else if (mode === "view") {
             editButton.hidden = false;
             viewButton.hidden = true;
             importButton.hidden = true;
-        } else if (mode === 'import') {
+        } else if (mode === "import") {
             editButton.hidden = true;
             viewButton.hidden = true;
             importButton.hidden = false;
