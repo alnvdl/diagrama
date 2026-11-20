@@ -112,7 +112,7 @@ body {
     color: var(--lwa-font-color);
     flex: 1 1 auto;
     /* Scales smoothly with the header width, without breakpoints. */
-    font-size: clamp(1.2rem, 2.5cqw, 1.5rem);
+    font-size: clamp(0.85rem, 2.5cqw, 1.5rem);
     font-weight: var(--lwa-font-weight);
     max-width: unset;
     min-width: 0;
