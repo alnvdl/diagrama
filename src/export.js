@@ -102,7 +102,7 @@ async function injectStylesheet(svg, hasIcons) {
     let cssText = ["#diagram-svg a { color: inherit; text-decoration: underline; }"];
 
     if (hasIcons) {
-        cssText.push("#diagram-svg .material-symbols-rounded { vertical-align: text-bottom; }");
+        cssText.push("#diagram-svg .material-symbols-rounded { font-size: inherit; vertical-align: text-bottom; }");
         cssText.push(await fetch(iconsStylesheet).then(res => res.text()));
     }
 

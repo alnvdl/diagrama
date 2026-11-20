@@ -34,8 +34,8 @@ vendor_material_symbols_font() {
     echo -n "data:font/woff2;base64," > font.woff2.b64
     base64 -w 0 font.woff2 >> font.woff2.b64
 
-    # Replace font URL with a placeholder and then replace the placeholder with the
-    # base64 file content.
+    # Replace font URL with a placeholder and then replace the placeholder with
+    # the base64 file content.
     sed "s|$FONT_URL|__BASE64_FONT__|" input.css > placeholder.css
     awk '
     BEGIN {

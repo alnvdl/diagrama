@@ -64,6 +64,7 @@ let inError = false;
 // notificationOverlayTimeout holds the timeout ID for hiding the notification
 // overlay.
 let notificationOverlayTimeout;
+const importPreviewNotification = "Previewing diagram. Import it into your library to edit.";
 
 // saveStateTimeout holds the timeout ID for debouncing saveState operations.
 let saveStateTimeout;
@@ -125,6 +126,11 @@ function parseJSONObject(str) {
 // updateCurrentDiagram.
 function loadState() {
     diagrams = parseJSONObject(localStorage.getItem("diagrams"));
+    // If the user has no diagrams, initialize the library with the default
+    // diagram.
+    if (Object.keys(diagrams).length === 0) {
+        diagrams[defaultDiagram().name] = defaultDiagram();
+    }
 
     let fromHash = function() {
         const hash = window.location.hash.replace(/^#/, '');
@@ -409,6 +415,12 @@ function setMode(mode) {
         }
     }
 
+    if (mode === "import") {
+        showNotification(importPreviewNotification, true, true);
+    } else {
+        hideNotification(importPreviewNotification);
+    }
+
     // Hide the view/edit buttons based on the mode.
     const editButton = document.getElementById("set-mode-edit");
     const viewButton = document.getElementById("set-mode-view");
@@ -624,7 +636,7 @@ function doCreate() {
     updateCurrentDiagram(newDiagram, true, true);
     closeCreate();
     nameInput.value = '';
-    showNotification(`Created "${newDiagram.name}"`, true);
+    showNotification(`Created "${newDiagram.name}".`, true);
 };
 
 function clearCreateError() {
@@ -817,14 +829,14 @@ function appendDiagramItem(container, diagramData) {
 function openDiagram(name) {
     const data = diagrams[name];
     if (!data) {
-        showNotification(`Could not find diagram "${name}"`, false);
+        showNotification(`Could not find diagram "${name}".`, false);
     };
 
     // Always open diagrams in view mode, even if they were last saved in
     // edit mode.
     data.mode = "view";
     updateCurrentDiagram(data, true, true);
-    showNotification(`Opened "${name}"`, true);
+    showNotification(`Opened "${name}".`, true);
 }
 
 function deleteDiagram(name) {
@@ -835,7 +847,7 @@ function deleteDiagram(name) {
 
     if (Object.keys(diagrams).length === 0) {
         updateCurrentDiagram(defaultDiagram(), true, true);
-        showNotification(`Deleted "${name}", opened "${currentDiagram().name}"`, true);
+        showNotification(`Deleted "${name}", opened "${currentDiagram().name}".`, true);
     } else {
         // If the deleted diagram was the selected one, select the most
         // recently modified diagram.
@@ -848,9 +860,9 @@ function deleteDiagram(name) {
         // Show appropriate notification based on whether another diagram
         // was opened.
         if (wasOpen && newlyOpened) {
-            showNotification(`Deleted "${name}", opened "${newlyOpened}"`, true);
+            showNotification(`Deleted "${name}", opened "${newlyOpened}".`, true);
         } else {
-            showNotification(`Deleted "${name}"`, true);
+            showNotification(`Deleted "${name}".`, true);
         }
     }
 }
@@ -965,7 +977,7 @@ async function performImport(importName) {
     const data = Object.assign(defaultDiagram(), currentDiagram(), {name: importName, mode: "view"});
     await updateCurrentDiagram(data, true, true);
     closeImport();
-    showNotification(`Imported "${importName}"`, true);
+    showNotification(`Imported "${importName}".`, true);
 }
 
 // Export/copy.
@@ -1041,7 +1053,7 @@ async function export_(formatID, clipboard) {
     });
 
     if (inError) {
-        showNotification("No diagram to export", false);
+        showNotification("No diagram to export.", false);
         return;
     }
 
@@ -1067,13 +1079,17 @@ async function export_(formatID, clipboard) {
         ['export', 'copy'].forEach(type => {
             document.getElementById(type).disabled = false;
         });
+        // Large pngScale values are the most likely cause of export errors, so
+        // we suggest that. There may be other causes however, so take this
+        // hint with a grain of salt. The specific export function in `formats`
+        // should have logged more details.
         if (clipboard) {
             let msg = !err ?
-                "Diagram copied to the clipboard" :
-                "Error copying diagram to the clipboard";
+                "Diagram copied to the clipboard." :
+                "Error copying diagram to the clipboard, try reducing the export scale.";
             showNotification(msg, !err);
         } else {
-            if (err) showNotification("Error exporting diagram", false);
+            if (err) showNotification("Error exporting diagram, try reducing the export scale.", false);
         }
         exporting = false;
     };
@@ -1106,21 +1122,31 @@ async function share() {
         ok = false;
     }
     let msg = ok ?
-        "Link copied to the clipboard" :
-        "Error copying link to the clipboard";
+        "Link copied to the clipboard." :
+        "Error copying link to the clipboard.";
     showNotification(msg, ok);
 }
 
-async function showNotification(msg, ok) {
+async function showNotification(msg, ok, permanent = false) {
     const overlay = document.getElementById('notification-overlay');
     overlay.textContent = msg;
     ok ? overlay.classList.remove('error') : overlay.classList.add('error');
     overlay.classList.add('show');
 
     clearTimeout(notificationOverlayTimeout);
-    notificationOverlayTimeout = setTimeout(() => {
-        overlay.classList.remove('show');
-    }, 2000);
+    if (!permanent) {
+        notificationOverlayTimeout = setTimeout(() => {
+            overlay.classList.remove('show');
+        }, 2000);
+    }
+}
+
+function hideNotification(msg) {
+    const overlay = document.getElementById('notification-overlay');
+    if (overlay.textContent !== msg) return;
+
+    clearTimeout(notificationOverlayTimeout);
+    overlay.classList.remove('show');
 }
 
 // Auto-adjust editor font on resize.

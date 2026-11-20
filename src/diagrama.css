@@ -174,7 +174,7 @@ body {
     transform: none;
     transition: opacity var(--lwa-transition);
     z-index: 10000;
-    max-width: 20rem;
+    max-width: 32rem;
 }
 
 #notification-overlay.error {
@@ -254,9 +254,9 @@ based on the container width). But it must never be seen. */
     white-space: pre-wrap;
 }
 
-/* These styles are exported in insertIconsStylesheet, make sure to
-        update it in both places. The staging diagram must be styled like the
-        one on display, so that Mermaid measures it correctly. */
+/* These styles are exported in injectStylesheet, make sure to update it in
+both places. The staging diagram must be styled like the one on display, so
+that Mermaid measures it correctly. */
 #diagram-svg a,
 #diagram-svg-next a {
     color: inherit;
@@ -265,8 +265,8 @@ based on the container width). But it must never be seen. */
 
 #diagram-svg .material-symbols-rounded,
 #diagram-svg-next .material-symbols-rounded {
-    vertical-align: middle;
     font-size: inherit;
+    vertical-align: text-bottom;
 }
 
 /* End of exported diagram styles. */

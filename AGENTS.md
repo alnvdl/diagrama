@@ -14,3 +14,5 @@ Instead, pass any required DOM elements as function parameters from
 `src/main.js`.
 
 Always use double quotes (`"`) when possible in all programming languages.
+
+All notifications should have proper punctuation.
